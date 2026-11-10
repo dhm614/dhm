@@ -154,7 +154,7 @@ th {
     min-height: 100vh;
     place-items: center;
     padding: 24px;
-    background: linear-gradient(135deg, rgba(251, 251, 253, 0.78), rgba(229, 241, 255, 0.86)), url("images/pet-card.jpg") center / cover;
+    background: linear-gradient(135deg, rgba(251, 251, 253, 0.78), rgba(229, 241, 255, 0.86)), url("images/content/default-post.jpg") center / cover;
 }
 
 .auth-shell {
@@ -174,7 +174,7 @@ th {
 .auth-visual {
     position: relative;
     min-height: 620px;
-    background: linear-gradient(180deg, rgba(16, 24, 40, 0.10), rgba(16, 24, 40, 0.56)), url("images/pet-hero.jpg") center / cover;
+    background: linear-gradient(180deg, rgba(16, 24, 40, 0.10), rgba(16, 24, 40, 0.56)), url("images/content/hero-community.jpg") center / cover;
 }
 
 .auth-visual::after {
@@ -388,7 +388,7 @@ th {
     border: 1px solid rgba(255, 255, 255, 0.62);
     border-radius: 8px;
     color: #ffffff;
-    background: linear-gradient(90deg, rgba(16, 24, 40, 0.76), rgba(16, 24, 40, 0.20)), url("images/pet-hero.jpg") center / cover;
+    background: linear-gradient(90deg, rgba(16, 24, 40, 0.76), rgba(16, 24, 40, 0.20)), url("images/content/hero-community.jpg") center / cover;
     box-shadow: var(--shadow);
 }
 

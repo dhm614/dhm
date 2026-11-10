@@ -323,7 +323,7 @@
     }
 
     function homePostCard(post) {
-        return card(post.cover || "assets/images/pet-card.jpg", post.title, [
+        return card(post.cover || "assets/images/content/default-post.jpg", post.title, [
             "话题：" + (post.topic || "-"),
             "点赞 " + number(post.likeCount) + " / 评论 " + number(post.commentCount),
             post.content || "-"
@@ -333,7 +333,7 @@
     }
 
     function homeStoreCard(store) {
-        return card(store.cover || "assets/images/pet-store.jpg", store.name, [
+        return card(store.cover || "assets/images/content/store-community-center.jpg", store.name, [
             store.address || "-",
             "电话：" + (store.phone || "-"),
             "营业时间：" + (store.businessHours || "-")
@@ -343,7 +343,7 @@
     }
 
     function homeProductCard(product) {
-        return card(product.cover || "assets/images/pet-food.jpg", product.name, [
+        return card(product.cover || "assets/images/content/product-cat-food.jpg", product.name, [
             "分类：" + (product.category || "-"),
             "价格：" + money(product.price),
             "销量：" + number(product.sales)
@@ -2764,7 +2764,7 @@
     }
 
     function img(url) {
-        url = url || "assets/images/pet-card.jpg";
+        url = url || "assets/images/content/default-post.jpg";
         if (!url) {
             return "data:image/svg+xml;charset=UTF-8," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='360' height='200'><rect width='360' height='200' fill='#dce4e8'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='#637381' font-size='20'>暂无图片</text></svg>");
         }
