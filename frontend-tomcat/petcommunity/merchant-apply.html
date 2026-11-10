@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>宠趣社区 - 商户资格申请</title>
+    <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-page="merchant-apply">
+<header class="site-header">
+    <a class="brand" href="home.html">
+        <span class="brand-mark">宠</span>
+        <span><strong>宠趣社区</strong><small>一站式服务平台</small></span>
+    </a>
+    <nav class="top-nav" aria-label="页面导航">
+        <a data-nav-page="home" href="home.html">主页</a>
+        <a data-nav-page="dashboard" href="dashboard.html">总览</a>
+        <a data-nav-page="community" href="community.html">社区</a>
+        <a data-nav-page="videos" href="videos.html">短视频</a>
+        <a data-nav-page="pets" href="pets.html">宠物档案</a>
+        <a data-nav-page="services" href="services.html">门店预约</a>
+        <a data-nav-page="shop" href="shop.html">模拟商城</a>
+        <a data-nav-page="profile" href="profile.html">个人主页</a>
+        <a data-nav-page="admin" href="admin.html">后台管理</a>
+    </nav>
+    <div class="user-tools">
+        <label class="api-field">接口 <input id="apiBase" value="http://localhost:8082"></label>
+        <span id="userBadge"></span>
+        <button type="button" class="secondary" data-action="logout">退出</button>
+    </div>
+</header>
+<main class="page-main">
+    <section class="page-heading">
+        <h1>商户资格申请</h1>
+        <p>填写真实的经营与联系信息，提交后由平台管理员审核。</p>
+    </section>
+    <section class="notice" id="notice">正在读取商户资格状态。</section>
+    <div class="toolbar">
+        <a class="button-link secondary" href="profile.html">返回个人主页</a>
+    </div>
+    <section class="panel" id="merchantApplicationPanel">
+        <h2>基本信息</h2>
+        <p id="merchantApplicationStatus">正在读取商户资格状态。</p>
+        <form id="merchantApplicationForm" class="form-grid">
+            <input name="merchantName" required placeholder="商户名称">
+            <input name="contactName" required placeholder="联系人姓名">
+            <input name="contactPhone" type="tel" required placeholder="联系电话">
+            <select name="businessType" required>
+                <option value="">请选择经营类型</option>
+                <option value="门店服务">门店服务</option>
+                <option value="商品销售">商品销售</option>
+                <option value="综合经营">综合经营</option>
+            </select>
+            <input name="businessAddress" required placeholder="经营地址">
+            <textarea name="reason" required placeholder="经营计划与申请说明"></textarea>
+            <div class="upload-row">
+                <input name="attachmentName" readonly placeholder="申请附件（可选，支持doc、docx、pdf）">
+                <input name="attachmentUrl" type="hidden">
+                <input id="merchantApplicationAttachmentFile" type="file" accept=".doc,.docx,.pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf">
+                <button type="button" data-action="uploadMerchantApplicationAttachment">上传申请附件</button>
+            </div>
+            <button type="submit">提交管理员审核</button>
+        </form>
+    </section>
+</main>
+<script src="assets/app.js"></script>
+</body>
+</html>

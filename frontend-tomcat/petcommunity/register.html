@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>宠趣社区 - 普通用户注册</title>
+    <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-page="register">
+<main class="auth-page">
+    <section class="auth-shell">
+        <aside class="auth-visual" aria-label="宠物服务图片"></aside>
+        <section class="auth-card">
+            <div class="auth-brand">
+                <div class="brand-mark">宠</div>
+                <div>
+                    <strong>普通用户注册</strong>
+                    <span>注册后可使用社区、预约和商城功能</span>
+                </div>
+            </div>
+
+            <form id="registerForm" class="auth-form" data-api="/api/users/register">
+                <label>
+                    用户名
+                    <input name="username" autocomplete="username" placeholder="请输入用户名">
+                </label>
+                <label>
+                    昵称
+                    <input name="nickname" placeholder="请输入昵称">
+                </label>
+                <label>
+                    密码
+                    <input name="password" type="password" autocomplete="new-password" placeholder="请输入密码">
+                </label>
+                <button type="submit" class="primary-action">注册</button>
+            </form>
+
+            <p class="auth-link">已有账号？<a href="index.html">返回登录</a></p>
+            <section class="notice" id="notice">这里仅注册普通用户。</section>
+        </section>
+    </section>
+</main>
+<script src="assets/app.js"></script>
+</body>
+</html>

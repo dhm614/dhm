@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>宠趣社区 - 门店预约</title>
+    <link rel="stylesheet" href="assets/styles.css?v=20261111-store-focus">
+</head>
+<body data-page="services">
+<header class="site-header">
+    <a class="brand" href="home.html">
+        <span class="brand-mark">宠</span>
+        <span><strong>宠趣社区</strong><small>一站式服务平台</small></span>
+    </a>
+    <nav class="top-nav" aria-label="页面导航">
+        <a data-nav-page="home" href="home.html">主页</a>
+        <a data-nav-page="dashboard" href="dashboard.html">总览</a>
+        <a data-nav-page="community" href="community.html">社区</a>
+        <a data-nav-page="videos" href="videos.html">短视频</a>
+        <a data-nav-page="pets" href="pets.html">宠物档案</a>
+        <a data-nav-page="services" href="services.html">门店预约</a>
+        <a data-nav-page="shop" href="shop.html">模拟商城</a>
+        <a data-nav-page="profile" href="profile.html">个人主页</a>
+        <a data-nav-page="admin" href="admin.html">后台管理</a>
+    </nav>
+    <div class="user-tools">
+        <label class="api-field">接口 <input id="apiBase" value="http://localhost:8082"></label>
+        <span id="userBadge"></span>
+        <button type="button" class="secondary" data-action="logout">退出</button>
+    </div>
+</header>
+<main class="page-main">
+    <section class="page-heading">
+        <h1>门店预约</h1>
+        <p>先查看门店图片和排班信息，再提交在线预约。</p>
+    </section>
+    <section class="notice" id="notice">正在通过百度地图获取当前位置。</section>
+    <section class="panel map-panel">
+        <div class="panel-title-row">
+            <div>
+                <h2>附近门店定位</h2>
+                <p id="nearbyLocationStatus">正在定位当前位置，允许浏览器定位后会自动按距离加载门店。</p>
+            </div>
+            <button type="button" class="secondary" data-action="locateNearbyStores">重新定位</button>
+        </div>
+        <div id="nearbyStoreMap" class="map-canvas" aria-label="附近门店定位地图"></div>
+        <input id="longitude" type="hidden">
+        <input id="latitude" type="hidden">
+    </section>
+    <div class="toolbar">
+        <button data-action="loadStores">刷新门店</button>
+        <button data-action="loadNearbyStores">按当前位置排序</button>
+    </div>
+
+    <section class="panel">
+        <h2>门店图片</h2>
+        <div class="card-grid" id="storeList"></div>
+    </section>
+
+    <section class="panel">
+        <h2>在线预约</h2>
+        <form id="appointmentForm" class="inline-form">
+            <input name="petId" type="number" placeholder="宠物ID">
+            <input name="storeId" type="number" placeholder="门店ID">
+            <input name="serviceItemId" type="number" placeholder="服务ID">
+            <input name="serviceScheduleId" type="number" placeholder="排班ID">
+            <input name="appointmentTime" type="datetime-local">
+            <input name="remark" placeholder="备注">
+            <button type="submit">提交预约</button>
+        </form>
+    </section>
+
+    <section class="panel">
+        <h2>服务项目列表</h2>
+        <div class="card-grid compact" id="serviceItemList"></div>
+    </section>
+
+    <section class="panel" id="schedulePanel">
+        <div class="panel-title-row">
+            <h2>排班日历</h2>
+            <button type="button" class="secondary" data-action="toggleScheduleCalendar" aria-expanded="false" aria-controls="scheduleCalendarContent">展开排班</button>
+        </div>
+        <div id="scheduleCalendarContent" hidden>
+            <p id="scheduleFeedback" class="notice" aria-live="polite">请选择门店查看排班。</p>
+            <div id="merchantScheduleManagement" data-merchant-only hidden>
+                <form id="scheduleForm" class="inline-form">
+                    <input name="storeId" type="number" placeholder="门店ID">
+                    <input name="serviceItemId" type="number" placeholder="服务ID">
+                    <input name="scheduleDate" type="date">
+                    <input name="startTime" type="time">
+                    <input name="endTime" type="time">
+                    <input name="capacity" type="number" placeholder="容量" value="1">
+                    <input name="remark" placeholder="备注">
+                    <button type="submit">创建排班</button>
+                </form>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>ID</th><th>门店</th><th>服务</th><th>日期</th><th>时段</th><th>名额</th><th>操作</th></tr></thead>
+                    <tbody id="scheduleRows"></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel" data-merchant-only hidden>
+        <div class="panel-title-row">
+            <div>
+                <h2>商户预约管理</h2>
+                <p>查看自己门店收到的预约并更新处理状态。</p>
+            </div>
+            <a class="button-link" href="merchant-appointments.html">预约处理</a>
+        </div>
+    </section>
+
+    <section class="panel" id="merchantServiceManagement" data-merchant-only hidden>
+            <h2>新增服务项目</h2>
+            <form id="serviceItemForm" class="form-grid">
+                <input name="storeId" type="number" placeholder="门店ID">
+                <input name="name" placeholder="服务名称">
+                <select name="category">
+                    <option value="洗护">洗护</option>
+                    <option value="寄养">寄养</option>
+                    <option value="诊疗">诊疗</option>
+                </select>
+                <input name="price" type="number" step="0.01" placeholder="价格">
+                <input name="duration" type="number" placeholder="时长分钟">
+                <div class="upload-row">
+                    <input name="cover" placeholder="服务图片URL">
+                    <input id="serviceItemCoverFile" type="file" accept="image/*">
+                    <button type="button" data-action="uploadServiceItemCover">上传服务图片</button>
+                </div>
+                <textarea name="description" placeholder="服务说明"></textarea>
+                <button type="submit">新增服务</button>
+            </form>
+    </section>
+</main>
+<script src="https://api.map.baidu.com/api?v=4.0&ak=rqg5KGWLvulQC2KW0fxqSWwYT3E0In0D"></script>
+<script src="assets/app.js?v=20261111-store-focus"></script>
+</body>
+</html>

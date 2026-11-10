@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>宠趣社区 - 登录</title>
+    <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-page="login">
+<main class="auth-page">
+    <section class="auth-shell">
+        <aside class="auth-visual" aria-label="宠物社区图片"></aside>
+        <section class="auth-card">
+            <div class="auth-brand">
+                <div class="brand-mark">宠</div>
+                <div>
+                    <strong>宠趣社区</strong>
+                    <span>社区与服务一站式平台</span>
+                </div>
+            </div>
+
+            <div class="login-tabs" aria-label="登录身份">
+                <button type="button" class="active" data-login-role="USER">普通用户登录</button>
+                <button type="button" data-login-role="ADMIN">管理员登录</button>
+            </div>
+
+            <form id="loginForm" class="auth-form">
+                <label>
+                    用户名
+                    <input name="username" autocomplete="username" placeholder="请输入用户名">
+                </label>
+                <label>
+                    密码
+                    <input name="password" type="password" autocomplete="current-password" placeholder="请输入密码">
+                </label>
+                <button type="submit" class="primary-action">登录</button>
+            </form>
+
+            <p class="auth-link">还没有账号？<a href="register.html">去注册普通用户</a></p>
+            <section class="notice" id="notice">请选择登录身份并输入账号。</section>
+        </section>
+    </section>
+</main>
+<script src="assets/app.js"></script>
+</body>
+</html>

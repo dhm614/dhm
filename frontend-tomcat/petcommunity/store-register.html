@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>宠趣社区 - 门店入驻</title>
+    <link rel="stylesheet" href="assets/styles.css?v=20261111-map">
+</head>
+<body data-page="store-register">
+<header class="site-header">
+    <a class="brand" href="home.html">
+        <span class="brand-mark">宠</span>
+        <span><strong>宠趣社区</strong><small>一站式服务平台</small></span>
+    </a>
+    <nav class="top-nav" aria-label="页面导航">
+        <a data-nav-page="home" href="home.html">主页</a>
+        <a data-nav-page="dashboard" href="dashboard.html">总览</a>
+        <a data-nav-page="community" href="community.html">社区</a>
+        <a data-nav-page="videos" href="videos.html">短视频</a>
+        <a data-nav-page="pets" href="pets.html">宠物档案</a>
+        <a data-nav-page="services" href="services.html">门店预约</a>
+        <a data-nav-page="shop" href="shop.html">模拟商城</a>
+        <a data-nav-page="profile" href="profile.html">个人主页</a>
+        <a data-nav-page="admin" href="admin.html">后台管理</a>
+    </nav>
+    <div class="user-tools">
+        <label class="api-field">接口 <input id="apiBase" value="http://localhost:8082"></label>
+        <span id="userBadge"></span>
+        <button type="button" class="secondary" data-action="logout">退出</button>
+    </div>
+</header>
+<main class="page-main">
+    <section class="page-heading">
+        <h1>门店入驻</h1>
+        <p>填写门店基本信息，并在百度地图中定位门店位置。</p>
+    </section>
+    <section class="notice" id="notice">正在获取当前位置，请允许浏览器定位。</section>
+    <div class="toolbar">
+        <a class="button-link secondary" href="profile.html">返回个人主页</a>
+    </div>
+
+    <section class="panel map-panel">
+        <div class="panel-title-row">
+            <div>
+                <h2>门店定位</h2>
+                <p id="storeLocationStatus">地图会默认定位到当前位置，也可以点击地图选择准确位置。</p>
+            </div>
+            <button type="button" class="secondary" data-action="locateStoreLocation">定位当前位置</button>
+        </div>
+        <div id="storeLocationMap" class="map-canvas" aria-label="门店定位地图"></div>
+        <p id="storeCoordinateText" class="map-coordinate">尚未选择门店位置。</p>
+    </section>
+
+    <section class="panel">
+        <h2>门店基本信息</h2>
+        <form id="storeForm" class="form-grid">
+            <input name="name" placeholder="门店名称" required>
+            <input name="address" placeholder="门店地址" required>
+            <input name="phone" placeholder="联系电话">
+            <input name="businessHours" placeholder="营业时间，例如 09:00-21:00">
+            <input name="longitude" type="hidden">
+            <input name="latitude" type="hidden">
+            <div class="upload-row form-wide">
+                <input name="cover" placeholder="门店图片URL">
+                <input id="storeCoverFile" type="file" accept="image/*">
+                <button type="button" data-action="uploadStoreCover">上传门店图片</button>
+            </div>
+            <textarea name="description" class="form-wide" placeholder="门店介绍"></textarea>
+            <button type="submit" class="form-wide">提交门店入驻</button>
+        </form>
+    </section>
+</main>
+<script src="https://api.map.baidu.com/api?v=4.0&ak=rqg5KGWLvulQC2KW0fxqSWwYT3E0In0D"></script>
+<script src="assets/app.js?v=20261111-map"></script>
+</body>
+</html>

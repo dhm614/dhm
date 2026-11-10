@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>宠趣社区 - 模拟商城</title>
+    <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-page="shop">
+<header class="site-header">
+    <a class="brand" href="home.html">
+        <span class="brand-mark">宠</span>
+        <span><strong>宠趣社区</strong><small>一站式服务平台</small></span>
+    </a>
+    <nav class="top-nav" aria-label="页面导航">
+        <a data-nav-page="home" href="home.html">主页</a>
+        <a data-nav-page="dashboard" href="dashboard.html">总览</a>
+        <a data-nav-page="community" href="community.html">社区</a>
+        <a data-nav-page="videos" href="videos.html">短视频</a>
+        <a data-nav-page="pets" href="pets.html">宠物档案</a>
+        <a data-nav-page="services" href="services.html">门店预约</a>
+        <a data-nav-page="shop" href="shop.html">模拟商城</a>
+        <a data-nav-page="profile" href="profile.html">个人主页</a>
+        <a data-nav-page="admin" href="admin.html">后台管理</a>
+    </nav>
+    <div class="user-tools">
+        <label class="api-field">接口 <input id="apiBase" value="http://localhost:8082"></label>
+        <span id="userBadge"></span>
+        <button type="button" class="secondary" data-action="logout">退出</button>
+    </div>
+</header>
+<main class="page-main">
+    <section class="page-heading">
+        <h1>模拟商城</h1>
+        <p>商品展示、购物车和模拟结算流程。</p>
+    </section>
+    <section class="notice" id="notice">模拟商城页面已就绪。</section>
+    <div class="toolbar">
+        <button data-action="loadProducts">刷新商品</button>
+        <button data-action="loadCart">刷新购物车</button>
+        <button data-action="goCheckout">去结算</button>
+        <button id="orderToggleButton" data-action="toggleOrders">查看订单</button>
+    </div>
+    <div class="two-col">
+        <section class="panel">
+            <h2>商品列表</h2>
+            <div class="card-grid compact" id="productList"></div>
+        </section>
+        <section class="panel">
+            <h2 id="shopListTitle">购物车</h2>
+            <div id="cartView">
+                <div class="list" id="cartList"></div>
+            </div>
+            <div id="orderView" hidden>
+                <div class="list" id="orderList"></div>
+            </div>
+        </section>
+    </div>
+    <section class="panel" id="merchantShopActions" data-merchant-only hidden>
+        <h2>商户商品管理</h2>
+        <div class="toolbar">
+            <a class="button-link" href="merchant-product-create.html">商品上传</a>
+            <a class="button-link secondary" href="merchant-products.html">商品管理</a>
+        </div>
+    </section>
+</main>
+<script src="assets/app.js"></script>
+</body>
+</html>

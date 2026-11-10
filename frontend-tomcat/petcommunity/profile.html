@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>宠趣社区 - 个人主页</title>
+    <link rel="stylesheet" href="assets/styles.css?v=20261111-map">
+</head>
+<body data-page="profile">
+<header class="site-header">
+    <a class="brand" href="home.html">
+        <span class="brand-mark">宠</span>
+        <span><strong>宠趣社区</strong><small>一站式服务平台</small></span>
+    </a>
+    <nav class="top-nav" aria-label="页面导航">
+        <a data-nav-page="home" href="home.html">主页</a>
+        <a data-nav-page="dashboard" href="dashboard.html">总览</a>
+        <a data-nav-page="community" href="community.html">社区</a>
+        <a data-nav-page="videos" href="videos.html">短视频</a>
+        <a data-nav-page="pets" href="pets.html">宠物档案</a>
+        <a data-nav-page="services" href="services.html">门店预约</a>
+        <a data-nav-page="shop" href="shop.html">模拟商城</a>
+        <a data-nav-page="profile" href="profile.html">个人主页</a>
+        <a data-nav-page="admin" href="admin.html">后台管理</a>
+    </nav>
+    <div class="user-tools">
+        <label class="api-field">接口 <input id="apiBase" value="http://localhost:8082"></label>
+        <span id="userBadge"></span>
+        <button type="button" class="secondary" data-action="logout">退出</button>
+    </div>
+</header>
+<main class="page-main">
+    <section class="page-heading">
+        <h1>个人主页</h1>
+        <p>展示用户信息、关注数据，以及本人发布的帖子和短视频。</p>
+    </section>
+    <section class="notice" id="notice">个人主页页面已就绪。</section>
+    <div class="toolbar">
+        <button data-action="loadProfile">刷新个人主页</button>
+        <input id="profileUserId" type="number" value="1" placeholder="主页用户ID">
+    </div>
+    <section class="profile-panel" id="profilePanel"></section>
+    <div class="toolbar" id="profileFollowAction" hidden></div>
+    <div class="two-col profile-social-grid">
+        <section class="panel">
+            <h2>关注列表</h2>
+            <div class="list" id="followingList"></div>
+        </section>
+        <section class="panel">
+            <h2>粉丝列表</h2>
+            <div class="list" id="followerList"></div>
+        </section>
+    </div>
+    <div class="toolbar">
+        <a class="button-link" href="my-posts.html">我的帖子</a>
+        <a class="button-link secondary" href="my-videos.html">我的短视频</a>
+        <a class="button-link secondary" href="my-appointments.html">我的预约</a>
+    </div>
+    <section class="panel" id="merchantApplicationPanel">
+        <h2>商户资格</h2>
+        <p id="merchantApplicationStatus">正在读取商户资格状态。</p>
+        <a id="merchantApplicationLink" class="button-link" href="merchant-apply.html">申请成为商户</a>
+        <a id="storeRegistrationLink" class="button-link" href="store-register.html" hidden>门店入驻</a>
+    </section>
+</main>
+<script src="assets/app.js?v=20261111-map"></script>
+</body>
+</html>

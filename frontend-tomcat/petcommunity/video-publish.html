@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>宠趣社区 - 上传短视频</title>
+    <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-page="video-publish">
+<header class="site-header">
+    <a class="brand" href="home.html">
+        <span class="brand-mark">宠</span>
+        <span><strong>宠趣社区</strong><small>一站式服务平台</small></span>
+    </a>
+    <nav class="top-nav" aria-label="页面导航">
+        <a data-nav-page="home" href="home.html">主页</a>
+        <a data-nav-page="dashboard" href="dashboard.html">总览</a>
+        <a data-nav-page="community" href="community.html">社区</a>
+        <a data-nav-page="videos" href="videos.html">短视频</a>
+        <a data-nav-page="pets" href="pets.html">宠物档案</a>
+        <a data-nav-page="services" href="services.html">门店预约</a>
+        <a data-nav-page="shop" href="shop.html">模拟商城</a>
+        <a data-nav-page="profile" href="profile.html">个人主页</a>
+        <a data-nav-page="admin" href="admin.html">后台管理</a>
+    </nav>
+    <div class="user-tools">
+        <label class="api-field">接口 <input id="apiBase" value="http://localhost:8082"></label>
+        <span id="userBadge"></span>
+        <button type="button" class="secondary" data-action="logout">退出</button>
+    </div>
+</header>
+<main class="page-main">
+    <section class="page-heading">
+        <h1>上传短视频</h1>
+        <p>提交后由管理员审核，审核通过后公开展示。</p>
+    </section>
+    <section class="notice" id="notice">请选择封面、MP4 视频和已审核话题。</section>
+    <div class="toolbar">
+        <a class="button-link secondary" href="videos.html">返回短视频</a>
+    </div>
+    <section class="panel">
+        <form id="videoForm" class="form-grid video-form">
+            <label>标题<input name="title" placeholder="请输入视频标题" required></label>
+            <label>封面文件<input id="videoCoverFile" type="file" accept="image/*" required></label>
+            <input name="cover" type="hidden">
+            <label>视频文件<input id="shortVideoFile" type="file" accept="video/mp4,.mp4" required></label>
+            <input name="videoUrl" type="hidden">
+            <label class="video-form-wide">简介<textarea name="content" placeholder="请输入视频简介" required></textarea></label>
+            <label class="video-form-wide">已选话题<input id="selectedVideoTopic" name="topic" readonly placeholder="请从下方选择话题" required></label>
+            <div class="chips video-form-wide" id="videoTopicChoices"></div>
+            <button class="video-form-wide" type="submit">提交审核</button>
+        </form>
+    </section>
+</main>
+<script src="assets/app.js"></script>
+</body>
+</html>

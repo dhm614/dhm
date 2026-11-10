@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>宠趣社区 - 宠物档案</title>
+    <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-page="pets">
+<header class="site-header">
+    <a class="brand" href="home.html">
+        <span class="brand-mark">宠</span>
+        <span><strong>宠趣社区</strong><small>一站式服务平台</small></span>
+    </a>
+    <nav class="top-nav" aria-label="页面导航">
+        <a data-nav-page="home" href="home.html">主页</a>
+        <a data-nav-page="dashboard" href="dashboard.html">总览</a>
+        <a data-nav-page="community" href="community.html">社区</a>
+        <a data-nav-page="videos" href="videos.html">短视频</a>
+        <a data-nav-page="pets" href="pets.html">宠物档案</a>
+        <a data-nav-page="services" href="services.html">门店预约</a>
+        <a data-nav-page="shop" href="shop.html">模拟商城</a>
+        <a data-nav-page="profile" href="profile.html">个人主页</a>
+        <a data-nav-page="admin" href="admin.html">后台管理</a>
+    </nav>
+    <div class="user-tools">
+        <label class="api-field">接口 <input id="apiBase" value="http://localhost:8082"></label>
+        <span id="userBadge"></span>
+        <button type="button" class="secondary" data-action="logout">退出</button>
+    </div>
+</header>
+<main class="page-main">
+    <section class="page-heading">
+        <h1>宠物档案</h1>
+        <p>维护品种、年龄、体重、疫苗、绝育和头像信息。</p>
+    </section>
+    <section class="notice" id="notice">宠物档案页面已就绪。</section>
+    <div class="toolbar">
+        <button data-action="loadPets">刷新档案</button>
+    </div>
+    <section class="panel">
+        <h2>宠物档案</h2>
+        <form id="petForm" class="form-grid">
+            <input name="name" placeholder="名称">
+            <select name="species">
+                <option value="猫">猫</option>
+                <option value="狗">狗</option>
+                <option value="其他">其他</option>
+            </select>
+            <input name="breed" placeholder="品种">
+            <input name="age" type="number" placeholder="年龄">
+            <input name="weight" type="number" step="0.1" placeholder="体重kg">
+            <select name="gender">
+                <option value="公">公</option>
+                <option value="母">母</option>
+                <option value="未知">未知</option>
+            </select>
+            <select name="vaccinated">
+                <option value="1">已接种疫苗</option>
+                <option value="0">未接种疫苗</option>
+            </select>
+            <select name="neutered">
+                <option value="1">已绝育</option>
+                <option value="0">未绝育</option>
+            </select>
+            <div class="upload-row">
+                <input name="avatar" placeholder="头像URL">
+                <input id="petAvatarFile" type="file" accept="image/*">
+                <button type="button" data-action="uploadPetAvatar">上传头像</button>
+            </div>
+            <textarea name="remark" placeholder="备注"></textarea>
+            <button type="submit">保存档案</button>
+        </form>
+    </section>
+    <div class="card-grid" id="petList"></div>
+</main>
+<script src="assets/app.js"></script>
+</body>
+</html>

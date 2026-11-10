@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>宠趣社区 - 内容审核详情</title>
+    <link rel="stylesheet" href="assets/styles.css?v=20261110-content1">
+</head>
+<body data-page="admin-audit-detail">
+<header class="site-header">
+    <a class="brand" href="home.html">
+        <span class="brand-mark">宠</span>
+        <span><strong>宠趣社区</strong><small>一站式服务平台</small></span>
+    </a>
+    <nav class="top-nav" aria-label="页面导航">
+        <a data-nav-page="home" href="home.html">主页</a>
+        <a data-nav-page="dashboard" href="dashboard.html">总览</a>
+        <a data-nav-page="community" href="community.html">社区</a>
+        <a data-nav-page="videos" href="videos.html">短视频</a>
+        <a data-nav-page="pets" href="pets.html">宠物档案</a>
+        <a data-nav-page="services" href="services.html">门店预约</a>
+        <a data-nav-page="shop" href="shop.html">模拟商城</a>
+        <a data-nav-page="profile" href="profile.html">个人主页</a>
+        <a data-nav-page="admin" href="admin.html">后台管理</a>
+    </nav>
+    <div class="user-tools">
+        <label class="api-field">接口 <input id="apiBase" value="http://localhost:8082"></label>
+        <span id="userBadge"></span>
+        <button type="button" class="secondary" data-action="logout">退出</button>
+    </div>
+</header>
+<main class="page-main audit-detail-page">
+    <section class="page-heading">
+        <h1 id="auditPageTitle">内容审核详情</h1>
+        <p>查看完整内容后，在页面底部选择审核结果。</p>
+    </section>
+    <section class="notice" id="notice">审核内容正在加载。</section>
+    <div class="toolbar">
+        <a class="button-link secondary" href="admin.html">返回后台管理</a>
+    </div>
+    <section class="panel" id="auditContentDetail"></section>
+    <section class="panel audit-decision-panel">
+        <h2>审核结果</h2>
+        <form id="auditDecisionForm">
+            <label for="auditRemark">审核备注</label>
+            <textarea id="auditRemark" name="remark" placeholder="可填写通过说明或驳回原因"></textarea>
+            <div class="audit-review-actions">
+                <button type="button" data-audit-status="1">审核通过</button>
+                <button type="button" class="danger" data-audit-status="2">审核驳回</button>
+            </div>
+        </form>
+    </section>
+</main>
+<script src="assets/app.js?v=20261110-content1"></script>
+</body>
+</html>
