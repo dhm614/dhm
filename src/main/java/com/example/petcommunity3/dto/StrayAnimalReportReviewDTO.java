@@ -6,6 +6,8 @@ import lombok.Data;
 public class StrayAnimalReportReviewDTO {
     private Integer status;
     private String reviewRemark;
+    private String healthStatus;
+    private Integer dangerLevel;
     private String professionalName;
     private String professionalOrganization;
     private String professionalPhone;
