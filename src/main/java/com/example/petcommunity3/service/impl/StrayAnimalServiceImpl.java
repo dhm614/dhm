@@ -91,6 +91,11 @@ public class StrayAnimalServiceImpl implements StrayAnimalService {
 
     @Override
     public List<StrayAnimal> listForAdmin(Integer rescueStatus) {
+        if (rescueStatus != null
+                && (rescueStatus < StrayAnimal.RESCUE_WAITING
+                || rescueStatus > StrayAnimal.RESCUE_CLOSED)) {
+            throw new RuntimeException("救助状态必须在0到3之间");
+        }
         LambdaQueryWrapper<StrayAnimal> wrapper = new LambdaQueryWrapper<>();
         if (rescueStatus != null) {
             wrapper.eq(StrayAnimal::getRescueStatus, rescueStatus);
@@ -187,11 +192,22 @@ public class StrayAnimalServiceImpl implements StrayAnimalService {
     }
 
     private void validateAdminUpdate(StrayAnimalUpdateDTO dto) {
-        if (dto == null
-                || dto.getRescueStatus() == null
+        if (dto == null) {
+            throw new RuntimeException("更新信息不能为空");
+        }
+        if (dto.getDangerLevel() == null) {
+            throw new RuntimeException("危险等级不能为空");
+        }
+        if (dto.getDangerLevel() < 0 || dto.getDangerLevel() > 3) {
+            throw new RuntimeException("危险等级必须在0到3之间");
+        }
+        if (dto.getRescueStatus() == null
                 || dto.getRescueStatus() < StrayAnimal.RESCUE_WAITING
                 || dto.getRescueStatus() > StrayAnimal.RESCUE_CLOSED) {
-            throw new RuntimeException("救助状态不合法");
+            throw new RuntimeException("救助状态必须在0到3之间");
+        }
+        if (dto.getStatus() == null || (dto.getStatus() != 0 && dto.getStatus() != 1)) {
+            throw new RuntimeException("展示状态只允许为0或1");
         }
         if (!StringUtils.hasText(dto.getHealthStatus())
                 || !StringUtils.hasText(dto.getProfessionalName())

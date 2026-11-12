@@ -163,6 +163,17 @@ class StrayAnimalPublicQueryTest {
     }
 
     @Test
+    void listForAdminRejectsInvalidRescueStatusBeforeQuerying() {
+        TestContext context = context();
+
+        assertThatThrownBy(() -> context.service.listForAdmin(-1))
+                .hasMessage("救助状态必须在0到3之间");
+        assertThatThrownBy(() -> context.service.listForAdmin(4))
+                .hasMessage("救助状态必须在0到3之间");
+        verify(context.animalMapper, never()).selectList(any());
+    }
+
+    @Test
     void updateForAdminUpdatesDtoFieldsAndUpdateTime() {
         TestContext context = contextWithAnimal();
         LocalDateTime before = LocalDateTime.now();
@@ -186,14 +197,44 @@ class StrayAnimalPublicQueryTest {
     }
 
     @Test
+    void updateForAdminAcceptsBoundaryValues() {
+        TestContext context = contextWithAnimal();
+        StrayAnimalUpdateDTO dto = validUpdate();
+        dto.setDangerLevel(3);
+        dto.setRescueStatus(StrayAnimal.RESCUE_CLOSED);
+        dto.setStatus(1);
+
+        context.service.updateForAdmin(1L, dto);
+
+        ArgumentCaptor<StrayAnimal> captor = ArgumentCaptor.forClass(StrayAnimal.class);
+        verify(context.animalMapper).updateById(captor.capture());
+        assertThat(captor.getValue().getDangerLevel()).isEqualTo(3);
+        assertThat(captor.getValue().getRescueStatus()).isEqualTo(StrayAnimal.RESCUE_CLOSED);
+        assertThat(captor.getValue().getStatus()).isEqualTo(1);
+    }
+
+    @Test
+    void updateForAdminRejectsInvalidDangerLevel() {
+        assertInvalidUpdate(dto -> dto.setDangerLevel(null), "危险等级不能为空");
+        assertInvalidUpdate(dto -> dto.setDangerLevel(-1), "危险等级必须在0到3之间");
+        assertInvalidUpdate(dto -> dto.setDangerLevel(4), "危险等级必须在0到3之间");
+    }
+
+    @Test
+    void updateForAdminRejectsInvalidStatus() {
+        assertInvalidUpdate(dto -> dto.setStatus(null), "展示状态只允许为0或1");
+        assertInvalidUpdate(dto -> dto.setStatus(-1), "展示状态只允许为0或1");
+        assertInvalidUpdate(dto -> dto.setStatus(2), "展示状态只允许为0或1");
+    }
+
+    @Test
     void updateForAdminValidatesRecordStatusAndRequiredFields() {
         assertThatThrownBy(() -> context().service.updateForAdmin(99L, validUpdate()))
                 .hasMessage("流浪动物不存在");
 
-        StrayAnimalUpdateDTO invalidStatus = validUpdate();
-        invalidStatus.setRescueStatus(4);
-        assertThatThrownBy(() -> contextWithAnimal().service.updateForAdmin(1L, invalidStatus))
-                .hasMessage("救助状态不合法");
+        assertInvalidUpdate(dto -> dto.setRescueStatus(null), "救助状态必须在0到3之间");
+        assertInvalidUpdate(dto -> dto.setRescueStatus(-1), "救助状态必须在0到3之间");
+        assertInvalidUpdate(dto -> dto.setRescueStatus(4), "救助状态必须在0到3之间");
 
         List<Consumer<StrayAnimalUpdateDTO>> invalidators = List.of(
                 dto -> dto.setHealthStatus(" "),
@@ -212,6 +253,16 @@ class StrayAnimalPublicQueryTest {
                     .hasMessage("请完整填写流浪动物专业协助信息");
             verify(context.animalMapper, never()).updateById(any(StrayAnimal.class));
         }
+    }
+
+    private void assertInvalidUpdate(Consumer<StrayAnimalUpdateDTO> invalidator, String message) {
+        TestContext context = contextWithAnimal();
+        StrayAnimalUpdateDTO dto = validUpdate();
+        invalidator.accept(dto);
+
+        assertThatThrownBy(() -> context.service.updateForAdmin(1L, dto))
+                .hasMessage(message);
+        verify(context.animalMapper, never()).updateById(any(StrayAnimal.class));
     }
 
     private TestContext contextWithAnimalList() {
