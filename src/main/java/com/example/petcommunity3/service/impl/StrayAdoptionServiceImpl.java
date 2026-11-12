@@ -224,8 +224,8 @@ public class StrayAdoptionServiceImpl implements StrayAdoptionService {
                 new LambdaQueryWrapper<StrayAdoptionApplication>()
                         .eq(StrayAdoptionApplication::getAnimalId,
                                 application.getAnimalId())
-                        .ne(StrayAdoptionApplication::getApplicantUserId,
-                                application.getApplicantUserId())
+                        .ne(StrayAdoptionApplication::getId,
+                                application.getId())
                         .eq(StrayAdoptionApplication::getStatus,
                                 StrayAdoptionApplication.STATUS_APPROVED)
         );

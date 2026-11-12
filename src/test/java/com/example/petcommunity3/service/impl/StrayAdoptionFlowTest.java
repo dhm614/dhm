@@ -182,6 +182,7 @@ class StrayAdoptionFlowTest {
                 .contains(StrayAdoptionApplication.STATUS_CANCELLED);
         assertAnimalLocked(context);
         assertAnimalRestored(context);
+        assertActiveApplicationCountQuery(context, 11L);
     }
 
     @Test
@@ -241,6 +242,7 @@ class StrayAdoptionFlowTest {
                 .anyMatch(LocalDateTime.class::isInstance);
         assertAnimalLocked(context);
         assertAnimalRestored(context);
+        assertActiveApplicationCountQuery(context, 11L);
     }
 
     @Test
@@ -256,7 +258,7 @@ class StrayAdoptionFlowTest {
     }
 
     @Test
-    void approvalRejectsWhenAnotherUserAlreadyHasApprovedApplication() {
+    void approvalRejectsWhenAnotherApprovedApplicationExists() {
         TestContext context = context();
         when(context.applicationMapper.selectById(21L)).thenReturn(pendingApplication(7L));
         when(context.animalMapper.selectOne(any())).thenReturn(availableAnimal());
@@ -270,9 +272,10 @@ class StrayAdoptionFlowTest {
         ArgumentCaptor<LambdaQueryWrapper<StrayAdoptionApplication>> captor = applicationQueryCaptor();
         verify(context.applicationMapper).selectCount(captor.capture());
         assertThat(captor.getValue().getSqlSegment().toLowerCase())
-                .contains("animal_id", "applicant_user_id", "status");
+                .contains("animal_id", "id", "status")
+                .doesNotContain("applicant_user_id");
         assertThat(captor.getValue().getParamNameValuePairs().values())
-                .contains(11L, 7L, StrayAdoptionApplication.STATUS_APPROVED);
+                .contains(11L, 21L, StrayAdoptionApplication.STATUS_APPROVED);
     }
 
     @Test
@@ -365,6 +368,17 @@ class StrayAdoptionFlowTest {
         assertThat(wrapper.getSqlSegment().toLowerCase()).contains("id =", "status =");
         assertThat(wrapper.getParamNameValuePairs().values())
                 .contains(applicationId, StrayAdoptionApplication.STATUS_PENDING);
+    }
+
+    private void assertActiveApplicationCountQuery(TestContext context, Long animalId) {
+        ArgumentCaptor<LambdaQueryWrapper<StrayAdoptionApplication>> captor = applicationQueryCaptor();
+        verify(context.applicationMapper).selectCount(captor.capture());
+        assertThat(captor.getValue().getSqlSegment().toLowerCase())
+                .contains("animal_id", "status in");
+        assertThat(captor.getValue().getParamNameValuePairs().values())
+                .contains(animalId,
+                        StrayAdoptionApplication.STATUS_PENDING,
+                        StrayAdoptionApplication.STATUS_APPROVED);
     }
 
     private void assertAnimalRestored(TestContext context) {
