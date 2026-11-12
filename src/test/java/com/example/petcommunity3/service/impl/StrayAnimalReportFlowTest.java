@@ -136,6 +136,12 @@ class StrayAnimalReportFlowTest {
     }
 
     @Test
+    void duplicateDistanceIncludesExactTwoHundredMeterBoundary() {
+        assertThat(StrayAnimalReportServiceImpl.isWithinDuplicateDistance(0.2)).isTrue();
+        assertThat(StrayAnimalReportServiceImpl.isWithinDuplicateDistance(Math.nextUp(0.2))).isFalse();
+    }
+
+    @Test
     void submitAllowsSameSpeciesFartherThanTwoHundredMeters() {
         TestContext context = context();
         StrayAnimalReport previous = new StrayAnimalReport();

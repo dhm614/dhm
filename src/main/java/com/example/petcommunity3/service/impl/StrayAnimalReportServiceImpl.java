@@ -56,11 +56,11 @@ public class StrayAnimalReportServiceImpl implements StrayAnimalReportService {
         );
         boolean duplicate = recentReports.stream()
                 .filter(report -> report.getLongitude() != null && report.getLatitude() != null)
-                .anyMatch(report -> distanceKm(
+                .anyMatch(report -> isWithinDuplicateDistance(distanceKm(
                         dto.getLongitude(),
                         dto.getLatitude(),
                         report.getLongitude(),
-                        report.getLatitude()) <= DUPLICATE_DISTANCE_KM);
+                        report.getLatitude())));
         if (duplicate) {
             throw new RuntimeException("24小时内已提交过附近同类动物");
         }
@@ -226,6 +226,10 @@ public class StrayAnimalReportServiceImpl implements StrayAnimalReportService {
                 + Math.cos(latitude1Radians) * Math.cos(latitude2Radians)
                 * Math.sin(longitudeDelta / 2) * Math.sin(longitudeDelta / 2);
         return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+    }
+
+    static boolean isWithinDuplicateDistance(double distanceKm) {
+        return distanceKm <= DUPLICATE_DISTANCE_KM;
     }
 
     private String trimToNull(String value) {
