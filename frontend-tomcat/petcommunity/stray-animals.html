@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>宠趣社区 - 流浪宠物收留</title>
+    <link rel="stylesheet" href="assets/styles.css?v=20261112-stray">
+</head>
+<body data-page="stray-animals">
+<header class="site-header">
+    <a class="brand" href="home.html"><span class="brand-mark">宠</span><span><strong>宠趣社区</strong><small>一站式服务平台</small></span></a>
+    <nav class="top-nav" aria-label="页面导航">
+        <a data-nav-page="home" href="home.html">主页</a>
+        <a data-nav-page="dashboard" href="dashboard.html">总览</a>
+        <a data-nav-page="community" href="community.html">社区</a>
+        <a data-nav-page="videos" href="videos.html">短视频</a>
+        <a data-nav-page="stray-animals" href="stray-animals.html">流浪宠物收留</a>
+        <a data-nav-page="pets" href="pets.html">宠物档案</a>
+        <a data-nav-page="services" href="services.html">门店预约</a>
+        <a data-nav-page="shop" href="shop.html">模拟商城</a>
+        <a data-nav-page="profile" href="profile.html">个人主页</a>
+        <a data-nav-page="admin" href="admin.html">后台管理</a>
+    </nav>
+    <div class="user-tools"><span id="userBadge"></span><button type="button" class="secondary" data-action="logout">退出</button></div>
+</header>
+<main class="page-main">
+    <section class="page-heading"><h1>流浪宠物收留</h1><p>查看附近线索，申请收留，或提交新的流浪动物信息。</p></section>
+    <section class="notice" id="notice">正在定位当前位置并加载附近流浪动物。</section>
+    <div class="toolbar">
+        <button type="button" data-action="locateNearbyStrayAnimals">重新定位</button>
+        <a class="button-link" data-stray-login-only href="stray-report.html">上报流浪动物</a>
+        <button type="button" class="secondary" data-stray-login-only data-action="loadMyStrayReports">我的上报</button>
+        <button type="button" class="secondary" data-stray-login-only data-action="loadMyAdoptionApplications">我的收留申请</button>
+        <a class="button-link secondary" data-stray-guest-only href="index.html">登录后上报或申请</a>
+    </div>
+    <section class="panel map-panel">
+        <div class="panel-title-row"><div><h2>附近流浪动物地图</h2><p id="strayLocationStatus">正在获取当前位置。</p></div></div>
+        <div id="strayAnimalMap" class="map-canvas" aria-label="附近流浪动物地图"></div>
+        <input id="strayLongitude" type="hidden"><input id="strayLatitude" type="hidden">
+    </section>
+    <section class="panel"><div class="panel-title-row"><div><h2>你附近的流浪动物</h2><p>按当前位置距离由近到远排列。</p></div></div><div id="strayAnimalList" class="card-grid"></div></section>
+    <section class="panel" id="strayAnimalDetail" hidden></section>
+    <section class="panel" id="strayAdoptionSection" hidden>
+        <h2>申请收留</h2>
+        <form id="strayAdoptionForm" class="form-grid">
+            <input name="animalId" type="hidden"><input name="contactPhone" placeholder="联系电话" required>
+            <textarea name="livingCondition" placeholder="居住条件" required></textarea><textarea name="petExperience" placeholder="养宠经验"></textarea>
+            <textarea name="applicationReason" class="form-wide" placeholder="申请原因" required></textarea>
+            <button type="submit" class="form-wide">提交管理员审核</button>
+        </form>
+    </section>
+    <section class="panel" id="myStrayReportsSection" hidden><h2>我的上报</h2><div id="myStrayReportList" class="list"></div></section>
+    <section class="panel" id="myAdoptionApplicationsSection" hidden><h2>我的收留申请</h2><div id="myAdoptionApplicationList" class="list"></div></section>
+</main>
+<script src="https://api.map.baidu.com/api?v=4.0&ak=rqg5KGWLvulQC2KW0fxqSWwYT3E0In0D"></script>
+<script src="assets/app.js?v=20261112-stray"></script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>宠趣社区 - 上报流浪动物</title>
+    <link rel="stylesheet" href="assets/styles.css?v=20261112-stray">
+</head>
+<body data-page="stray-report">
+<header class="site-header">
+    <a class="brand" href="home.html"><span class="brand-mark">宠</span><span><strong>宠趣社区</strong><small>一站式服务平台</small></span></a>
+    <nav class="top-nav" aria-label="页面导航">
+        <a data-nav-page="home" href="home.html">主页</a><a data-nav-page="dashboard" href="dashboard.html">总览</a>
+        <a data-nav-page="community" href="community.html">社区</a><a data-nav-page="videos" href="videos.html">短视频</a>
+        <a data-nav-page="stray-animals" href="stray-animals.html">流浪宠物收留</a><a data-nav-page="pets" href="pets.html">宠物档案</a>
+        <a data-nav-page="services" href="services.html">门店预约</a><a data-nav-page="shop" href="shop.html">模拟商城</a>
+        <a data-nav-page="profile" href="profile.html">个人主页</a><a data-nav-page="admin" href="admin.html">后台管理</a>
+    </nav>
+    <div class="user-tools"><span id="userBadge"></span><button type="button" class="secondary" data-action="logout">退出</button></div>
+</header>
+<main class="page-main">
+    <section class="page-heading"><h1>上报流浪动物</h1><p>请提交真实的发现位置和现场信息，审核通过后才会公开展示。</p></section>
+    <section class="notice" id="notice">正在获取当前位置，请允许浏览器定位。</section>
+    <div class="toolbar"><a class="button-link secondary" href="stray-animals.html">返回流浪宠物地图</a></div>
+    <section class="panel map-panel">
+        <div class="panel-title-row"><div><h2>发现位置</h2><p id="strayReportLocationStatus">地图会定位当前位置，也可以点击地图调整。</p></div><button type="button" class="secondary" data-action="locateStrayReportLocation">定位当前位置</button></div>
+        <div id="strayReportMap" class="map-canvas" aria-label="流浪动物发现位置地图"></div>
+        <p id="strayReportCoordinateText" class="map-coordinate">尚未选择发现位置。</p>
+    </section>
+    <section class="panel">
+        <h2>动物与现场信息</h2>
+        <form id="strayReportForm" class="form-grid">
+            <input name="temporaryName" placeholder="临时称呼"><select name="species" required><option value="">选择种类</option><option value="猫">猫</option><option value="狗">狗</option><option value="其他">其他</option></select>
+            <select name="gender"><option value="">性别未知</option><option value="公">公</option><option value="母">母</option></select><input name="estimatedAge" type="number" min="0" placeholder="估算年龄">
+            <input name="foundTime" type="datetime-local" required><input name="reporterPhone" placeholder="上报人联系电话" required>
+            <input name="foundAddress" class="form-wide" placeholder="发现地址" required><input name="longitude" type="hidden"><input name="latitude" type="hidden">
+            <div class="upload-row form-wide"><input name="photoUrl" placeholder="照片URL" readonly required><input id="strayAnimalPhotoFile" type="file" accept="image/*"><button type="button" data-action="uploadStrayAnimalPhoto">上传照片</button></div>
+            <img id="strayAnimalPhotoPreview" class="stray-photo-preview form-wide" alt="待上报动物照片" hidden>
+            <textarea name="appearanceDescription" placeholder="外观特征" required></textarea><textarea name="healthDescription" placeholder="现场健康情况" required></textarea>
+            <select name="emergencyLevel"><option value="0">一般</option><option value="1">需要尽快帮助</option><option value="2">紧急</option></select>
+            <button type="submit" class="form-wide">提交管理员审核</button>
+        </form>
+    </section>
+</main>
+<script src="https://api.map.baidu.com/api?v=4.0&ak=rqg5KGWLvulQC2KW0fxqSWwYT3E0In0D"></script>
+<script src="assets/app.js?v=20261112-stray"></script>
+</body>
+</html>

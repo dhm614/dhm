@@ -716,6 +716,50 @@ th {
     font-style: italic;
 }
 
+.stray-animal-card img {
+    width: 100%;
+    height: 210px;
+    object-fit: cover;
+}
+
+.stray-card-title {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.stray-card-title h3 {
+    margin: 0;
+}
+
+.stray-animal-card-highlight {
+    box-shadow: 0 0 0 4px rgba(255, 179, 64, 0.42), var(--shadow);
+    transform: translateY(-2px);
+}
+
+.stray-animal-card-highlight h3,
+.stray-animal-card-highlight p {
+    font-weight: 700;
+    font-style: italic;
+}
+
+.stray-detail-layout {
+    display: grid;
+    grid-template-columns: minmax(240px, 38%) minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+}
+
+.stray-detail-layout > img,
+.stray-photo-preview {
+    width: 100%;
+    max-height: 420px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: #e5e5ea;
+}
+
 .card-actions {
     display: flex;
     flex-wrap: wrap;
@@ -1103,7 +1147,8 @@ th {
 }
 
 @media (max-width: 720px) {
-    .post-detail-content {
+    .post-detail-content,
+    .stray-detail-layout {
         grid-template-columns: 1fr;
     }
 }

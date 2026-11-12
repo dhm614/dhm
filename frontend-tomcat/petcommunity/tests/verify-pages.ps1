@@ -25,6 +25,8 @@ $pages = @(
     "merchant-appointments.html",
     "merchant-apply.html",
     "store-register.html",
+    "stray-animals.html",
+    "stray-report.html",
     "admin.html"
 )
 
@@ -61,7 +63,7 @@ if ($register -notmatch "/api/users/register") {
 }
 
 $homeContent = Get-Content -Encoding UTF8 -Raw -LiteralPath (Join-Path $root "home.html")
-foreach ($target in @("dashboard.html", "community.html", "videos.html", "pets.html", "services.html", "shop.html", "profile.html", "admin.html")) {
+foreach ($target in @("dashboard.html", "community.html", "videos.html", "stray-animals.html", "pets.html", "services.html", "shop.html", "profile.html", "admin.html")) {
     if ($homeContent -notmatch [regex]::Escape($target)) {
         throw "Home page missing link: $target"
     }
@@ -80,7 +82,7 @@ foreach ($marker in @(
 }
 
 $script = Get-Content -Encoding UTF8 -Raw -LiteralPath (Join-Path $root "assets\app.js")
-foreach ($marker in @("initLoginPage", "initRegisterPage", "initDashboardPage", "initCommunityPage", "initVideosPage", "initVideoPublishPage", "initVideoDetailPage", "initAdminAuditDetailPage", "initPetsPage", "initServicesPage", "initShopPage", "initCheckoutPage", "initProfilePage", "initMyPostsPage", "initMyVideosPage", "initMyAppointmentsPage", "initMerchantAppointmentsPage", "initStoreRegisterPage", "initAdminPage")) {
+foreach ($marker in @("initLoginPage", "initRegisterPage", "initDashboardPage", "initCommunityPage", "initVideosPage", "initVideoPublishPage", "initVideoDetailPage", "initAdminAuditDetailPage", "initPetsPage", "initServicesPage", "initShopPage", "initCheckoutPage", "initProfilePage", "initMyPostsPage", "initMyVideosPage", "initMyAppointmentsPage", "initMerchantAppointmentsPage", "initStoreRegisterPage", "initStrayAnimalsPage", "initStrayReportPage", "initAdminPage")) {
     if ($script -notmatch $marker) {
         throw "App script missing initializer: $marker"
     }

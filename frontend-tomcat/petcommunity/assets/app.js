@@ -15,7 +15,13 @@
         nearbyStoreMap: null,
         nearbyStorePoint: null,
         storeCardHighlightTimer: null,
-        storeLocationMap: null
+        storeLocationMap: null,
+        strayAnimalMap: null,
+        strayAnimalPoint: null,
+        strayAnimalCardHighlightTimer: null,
+        strayReportMap: null,
+        strayReportPoint: null,
+        strayReportOriginPoint: null
     };
 
     var actions = {
@@ -35,6 +41,11 @@
         loadNearbyStores: loadNearbyStores,
         locateNearbyStores: locateNearbyStores,
         locateStoreLocation: locateStoreLocation,
+        locateNearbyStrayAnimals: locateNearbyStrayAnimals,
+        locateStrayReportLocation: locateStrayReportLocation,
+        uploadStrayAnimalPhoto: uploadStrayAnimalPhoto,
+        loadMyStrayReports: loadMyStrayReports,
+        loadMyAdoptionApplications: loadMyAdoptionApplications,
         toggleScheduleCalendar: toggleScheduleCalendar,
         uploadStoreCover: uploadStoreCover,
         loadProducts: loadProducts,
@@ -73,7 +84,8 @@
             initRegisterPage();
             return;
         }
-        if (!requireLogin()) {
+        var publicPage = page === "stray-animals";
+        if (!publicPage && !requireLogin()) {
             return;
         }
 
@@ -95,6 +107,9 @@
         }
         if (page === "admin-audit-detail") {
             navPage = "admin";
+        }
+        if (page === "stray-report") {
+            navPage = "stray-animals";
         }
         initHeader(navPage);
         if (page === "dashboard" && !requireAdmin()) {
@@ -153,6 +168,10 @@
             initMerchantApplyPage();
         } else if (page === "store-register") {
             initStoreRegisterPage();
+        } else if (page === "stray-animals") {
+            initStrayAnimalsPage();
+        } else if (page === "stray-report") {
+            initStrayReportPage();
         } else if (page === "admin") {
             initAdminPage();
         } else if (page === "admin-audit-detail") {
@@ -284,6 +303,17 @@
         initStoreLocationMap();
     }
 
+    function initStrayAnimalsPage() {
+        bindSubmit("strayAdoptionForm", submitStrayAdoptionApplication);
+        applyStrayLoginVisibility();
+        initStrayAnimalsMap();
+    }
+
+    function initStrayReportPage() {
+        bindSubmit("strayReportForm", submitStrayAnimalReport);
+        initStrayReportMap();
+    }
+
     function initAdminPage() {
         bindSubmit("adminTopicForm", createAdminTopic);
         bindSubmit("sensitiveWordForm", createSensitiveWord);
@@ -366,19 +396,28 @@
     }
 
     function initHeader(page) {
+        var authUser = state.authUser || {};
         var links = document.querySelectorAll("[data-nav-page]");
         forEach(links, function (link) {
             var linkPage = link.getAttribute("data-nav-page");
             link.classList.toggle("active", linkPage === page);
-            if ((linkPage === "dashboard" || linkPage === "admin") && normalizeRole(state.authUser.role) !== "ADMIN") {
+            if ((linkPage === "dashboard" || linkPage === "admin") && normalizeRole(authUser.role) !== "ADMIN") {
                 link.hidden = true;
             }
         });
 
         var badge = byId("userBadge");
         if (badge) {
-            var roleName = normalizeRole(state.authUser.role) === "ADMIN" ? "管理员" : "普通用户";
-            badge.textContent = (state.authUser.nickname || state.authUser.username || "当前用户") + " #" + state.authUser.id + " " + roleName;
+            if (authUser.id) {
+                var roleName = normalizeRole(authUser.role) === "ADMIN" ? "管理员" : "普通用户";
+                badge.textContent = (authUser.nickname || authUser.username || "当前用户") + " #" + authUser.id + " " + roleName;
+            } else {
+                badge.textContent = "游客浏览";
+            }
+        }
+        var logoutButton = document.querySelector('[data-action="logout"]');
+        if (logoutButton && !authUser.id) {
+            logoutButton.textContent = "登录";
         }
     }
 
@@ -1237,6 +1276,372 @@
         if (node) {
             node.textContent = message;
         }
+    }
+
+    function applyStrayLoginVisibility() {
+        var loggedIn = !!(state.authUser && state.authUser.id);
+        forEach(document.querySelectorAll("[data-stray-login-only]"), function (node) {
+            node.hidden = !loggedIn;
+        });
+        forEach(document.querySelectorAll("[data-stray-guest-only]"), function (node) {
+            node.hidden = loggedIn;
+        });
+    }
+
+    function initStrayAnimalsMap() {
+        if (!byId("strayAnimalMap")) {
+            return;
+        }
+        state.strayAnimalMap = createBaiduMap("strayAnimalMap");
+        if (!state.strayAnimalMap) {
+            return;
+        }
+        state.strayAnimalMap.addEventListener("click", function (event) {
+            var point = event.latlng || event.point;
+            if (point) {
+                setStrayAnimalLocation(point, true);
+            }
+        });
+        locateNearbyStrayAnimals();
+    }
+
+    function locateNearbyStrayAnimals() {
+        locateCurrentPoint(function (point) {
+            setStrayAnimalLocation(point, true);
+            notice("已定位当前位置，并按距离加载附近的流浪动物。");
+        }, function () {
+            var fallback = new BMapGL.Point(118.904104, 31.908685);
+            setStrayAnimalLocation(fallback, true);
+            notice("定位失败，已使用南京江宁区弘景大道99号附近作为默认位置。", true);
+        });
+    }
+
+    function setStrayAnimalLocation(point, loadNearby) {
+        state.strayAnimalPoint = point;
+        var longitudeInput = byId("strayLongitude");
+        var latitudeInput = byId("strayLatitude");
+        if (longitudeInput) {
+            longitudeInput.value = Number(point.lng).toFixed(6);
+        }
+        if (latitudeInput) {
+            latitudeInput.value = Number(point.lat).toFixed(6);
+        }
+        setLocationStatus("strayLocationStatus", "当前位置：" + Number(point.lng).toFixed(6) + "，" + Number(point.lat).toFixed(6));
+        renderStrayAnimalMarkers([]);
+        if (loadNearby) {
+            loadNearbyStrayAnimals();
+        }
+    }
+
+    function loadNearbyStrayAnimals() {
+        if (!state.strayAnimalPoint) {
+            notice("请先定位当前位置。", true);
+            return;
+        }
+        var path = "/api/stray-animals/nearby?longitude=" + encodeURIComponent(state.strayAnimalPoint.lng) +
+            "&latitude=" + encodeURIComponent(state.strayAnimalPoint.lat) + "&limit=20";
+        request(path).then(function (list) {
+            renderStrayAnimalCards(list || []);
+            renderStrayAnimalMarkers(list || []);
+            notice("已加载 " + (list || []).length + " 条附近流浪动物信息。");
+        });
+    }
+
+    function renderStrayAnimalCards(list) {
+        var container = byId("strayAnimalList");
+        if (!container) {
+            return;
+        }
+        container.innerHTML = list.length ? list.map(strayAnimalCardHtml).join("") : emptyHtml();
+        bindStrayAnimalCardButtons();
+    }
+
+    function strayAnimalCardHtml(item) {
+        var animal = item.animal || {};
+        var html = "<article class='card stray-animal-card' data-stray-animal-id='" + text(animal.id) + "'>";
+        html += "<img src='" + img(animal.photoUrl) + "' alt='流浪动物照片'><div class='card-body'>";
+        html += "<div class='stray-card-title'><h3>" + text(animal.temporaryName || "待命名") + "</h3>";
+        html += "<span class='status'>" + text(strayRescueStatusText(animal.rescueStatus)) + "</span></div>";
+        html += "<p>" + text(animal.species) + " · " + text(animal.gender || "性别未知") + " · 约 " + text(animal.estimatedAge || "未知") + " 岁</p>";
+        html += "<p>距你 " + text(formatDistance(item.distanceKm)) + "，发现于 " + text(animal.foundAddress) + "</p>";
+        html += "<p>健康情况：" + text(animal.healthStatus) + "</p>";
+        html += "<div class='card-actions'><button type='button' data-stray-detail='" + text(animal.id) + "'>查看详情</button>";
+        html += "<button type='button' class='secondary' data-stray-adopt='" + text(animal.id) + "'>申请收留</button></div>";
+        return html + "</div></article>";
+    }
+
+    function bindStrayAnimalCardButtons() {
+        forEach(document.querySelectorAll("[data-stray-detail]"), function (button) {
+            button.onclick = function () {
+                loadStrayAnimalDetail(button.getAttribute("data-stray-detail"));
+            };
+        });
+        forEach(document.querySelectorAll("[data-stray-adopt]"), function (button) {
+            button.onclick = function () {
+                openStrayAdoptionForm(button.getAttribute("data-stray-adopt"));
+            };
+        });
+    }
+
+    function focusStrayAnimalCard(animalId) {
+        var cardNode = document.querySelector('[data-stray-animal-id="' + text(animalId) + '"]');
+        if (!cardNode) {
+            return;
+        }
+        cardNode.scrollIntoView({behavior: "smooth", block: "center"});
+        if (state.strayAnimalCardHighlightTimer) {
+            window.clearTimeout(state.strayAnimalCardHighlightTimer);
+        }
+        cardNode.classList.remove("stray-animal-card-highlight");
+        cardNode.classList.add("stray-animal-card-highlight");
+        state.strayAnimalCardHighlightTimer = window.setTimeout(function () {
+            cardNode.classList.remove("stray-animal-card-highlight");
+            state.strayAnimalCardHighlightTimer = null;
+        }, 5000);
+    }
+
+    function renderStrayAnimalMarkers(list) {
+        var map = state.strayAnimalMap;
+        if (!map) {
+            return;
+        }
+        map.clearOverlays();
+        if (state.strayAnimalPoint) {
+            addNearbyCurrentLocationMarker(map, state.strayAnimalPoint);
+            map.centerAndZoom(state.strayAnimalPoint, 14);
+        }
+        (list || []).forEach(function (item) {
+            addStrayAnimalMarker(map, item);
+        });
+    }
+
+    function addStrayAnimalMarker(map, item) {
+        var animal = item.animal || {};
+        var longitude = Number(animal.longitude);
+        var latitude = Number(animal.latitude);
+        if (!isFinite(longitude) || !isFinite(latitude)) {
+            return;
+        }
+        var point = new BMapGL.Point(longitude, latitude);
+        var marker = new BMapGL.Marker(point);
+        var label = new BMapGL.Label(text(animal.temporaryName || animal.species), {
+            position: point,
+            offset: new BMapGL.Size(16, -20)
+        });
+        label.setStyle({color: "#9a3412", backgroundColor: "#ffffff", border: "1px solid #fdba74", padding: "3px 6px", fontSize: "12px"});
+        var content = "<div>" + text(animal.foundAddress) + "</div><div>距离：" + text(formatDistance(item.distanceKm)) + "</div>";
+        var infoWindow = new BMapGL.InfoWindow(content, {title: text(animal.temporaryName || animal.species), width: 260});
+        var selectAnimal = function () {
+            map.openInfoWindow(infoWindow, point);
+            focusStrayAnimalCard(animal.id);
+        };
+        marker.addEventListener("click", selectAnimal);
+        if (typeof label.addEventListener === "function") {
+            label.addEventListener("click", selectAnimal);
+        }
+        map.addOverlay(marker);
+        map.addOverlay(label);
+    }
+
+    function loadStrayAnimalDetail(animalId) {
+        request("/api/stray-animals/" + animalId).then(function (animal) {
+            var container = byId("strayAnimalDetail");
+            container.innerHTML = strayAnimalDetailHtml(animal);
+            container.hidden = false;
+            bindStrayAnimalCardButtons();
+            container.scrollIntoView({behavior: "smooth", block: "start"});
+        });
+    }
+
+    function strayAnimalDetailHtml(animal) {
+        var html = "<div class='stray-detail-layout'><img src='" + img(animal.photoUrl) + "' alt='动物照片'><div>";
+        html += "<div class='panel-title-row'><div><h2>" + text(animal.temporaryName || "待命名") + "</h2>";
+        html += "<p>" + text(animal.species) + " · " + text(animal.gender || "性别未知") + "</p></div>";
+        html += "<button type='button' data-stray-adopt='" + text(animal.id) + "'>申请收留</button></div>";
+        html += "<p><strong>发现位置：</strong>" + text(animal.foundAddress) + "</p>";
+        html += "<p><strong>外观特征：</strong>" + text(animal.appearanceDescription) + "</p>";
+        html += "<p><strong>健康状态：</strong>" + text(animal.healthStatus) + "</p>";
+        return html + strayProfessionalHelpHtml(animal) + "</div></div>";
+    }
+
+    function strayProfessionalHelpHtml(animal) {
+        var html = "<p><strong>捕捉建议：</strong>" + text(animal.captureInstruction) + "</p>";
+        html += "<p><strong>驱虫建议：</strong>" + text(animal.dewormingAdvice) + "</p>";
+        html += "<p><strong>疫苗建议：</strong>" + text(animal.vaccineAdvice) + "</p>";
+        html += "<p><strong>协助机构：</strong>" + text(animal.professionalOrganization) + " / " + text(animal.professionalName) + "</p>";
+        if (animal.professionalPhone) {
+            return html + "<p><strong>专业协助电话：</strong>" + text(animal.professionalPhone) + "</p>";
+        }
+        return html + "<p class='muted'>收留申请审核通过后可查看专业人士完整联系方式。</p>";
+    }
+
+    function openStrayAdoptionForm(animalId) {
+        if (!state.authUser || !state.authUser.id) {
+            window.location.href = "index.html";
+            return;
+        }
+        var section = byId("strayAdoptionSection");
+        byId("strayAdoptionForm").elements.animalId.value = animalId;
+        section.hidden = false;
+        section.scrollIntoView({behavior: "smooth", block: "start"});
+    }
+
+    function submitStrayAdoptionApplication(form) {
+        var payload = values(form);
+        payload.animalId = intVal(payload.animalId);
+        request("/api/stray-adoption-applications", {method: "POST", body: payload}).then(function () {
+            form.reset();
+            byId("strayAdoptionSection").hidden = true;
+            notice("收留申请已提交，请等待管理员审核。");
+            loadNearbyStrayAnimals();
+        });
+    }
+
+    function loadMyStrayReports() {
+        if (!state.authUser || !state.authUser.id) {
+            window.location.href = "index.html";
+            return;
+        }
+        var section = byId("myStrayReportsSection");
+        section.hidden = false;
+        request("/api/stray-animal-reports/my").then(function (list) {
+            renderList("myStrayReportList", list || [], function (item) {
+                return "<div class='list-item'><strong>" + text(item.temporaryName || item.species) + "</strong><p>" +
+                    text(item.foundAddress) + "</p><p>审核状态：" + text(strayAuditStatusText(item.status)) +
+                    "</p><p>审核说明：" + text(item.reviewRemark || "暂无") + "</p></div>";
+            });
+            section.scrollIntoView({behavior: "smooth", block: "start"});
+        });
+    }
+
+    function loadMyAdoptionApplications() {
+        if (!state.authUser || !state.authUser.id) {
+            window.location.href = "index.html";
+            return;
+        }
+        var section = byId("myAdoptionApplicationsSection");
+        section.hidden = false;
+        request("/api/stray-adoption-applications/my").then(function (list) {
+            renderList("myAdoptionApplicationList", list || [], strayAdoptionApplicationHtml);
+            bindCancelStrayAdoptionButtons();
+            section.scrollIntoView({behavior: "smooth", block: "start"});
+        });
+    }
+
+    function strayAdoptionApplicationHtml(item) {
+        var html = "<div class='list-item'><strong>动物 #" + text(item.animalId) + "</strong>";
+        html += "<p>申请状态：" + text(strayAdoptionStatusText(item.status)) + "</p>";
+        html += "<p>审核说明：" + text(item.reviewRemark || "暂无") + "</p>";
+        if (Number(item.status) === 0) {
+            html += "<div class='card-actions'><button type='button' class='danger' data-cancel-stray-adoption='" + text(item.id) + "'>取消申请</button></div>";
+        }
+        return html + "</div>";
+    }
+
+    function bindCancelStrayAdoptionButtons() {
+        forEach(document.querySelectorAll("[data-cancel-stray-adoption]"), function (button) {
+            button.onclick = function () {
+                if (!confirm("确定取消这条收留申请吗？")) {
+                    return;
+                }
+                var path = "/api/stray-adoption-applications/" + button.getAttribute("data-cancel-stray-adoption") + "/cancel";
+                request(path, {method: "PUT"}).then(function () {
+                    notice("收留申请已取消。");
+                    loadMyAdoptionApplications();
+                });
+            };
+        });
+    }
+
+    function initStrayReportMap() {
+        if (!byId("strayReportMap")) {
+            return;
+        }
+        state.strayReportMap = createBaiduMap("strayReportMap");
+        if (!state.strayReportMap) {
+            return;
+        }
+        state.strayReportMap.addEventListener("click", function (event) {
+            var point = event.latlng || event.point;
+            if (point) {
+                setStrayReportLocation(point, true);
+            }
+        });
+        locateStrayReportLocation();
+    }
+
+    function locateStrayReportLocation() {
+        locateCurrentPoint(function (point) {
+            state.strayReportOriginPoint = point;
+            setStrayReportLocation(point, true);
+            notice("已定位当前位置，请确认动物发现位置。");
+        }, function () {
+            var fallback = new BMapGL.Point(118.904104, 31.908685);
+            state.strayReportOriginPoint = fallback;
+            setStrayReportLocation(fallback, true);
+            notice("定位失败，已使用南京江宁区弘景大道99号附近作为默认位置。", true);
+        });
+    }
+
+    function setStrayReportLocation(point, fillAddress) {
+        var form = byId("strayReportForm");
+        if (!form) {
+            return;
+        }
+        state.strayReportPoint = point;
+        form.elements.longitude.value = Number(point.lng).toFixed(6);
+        form.elements.latitude.value = Number(point.lat).toFixed(6);
+        showMapPoint(state.strayReportMap, point);
+        setLocationStatus("strayReportLocationStatus", "已选择发现位置，可点击地图继续调整。");
+        byId("strayReportCoordinateText").textContent = "经度 " + Number(point.lng).toFixed(6) + "，纬度 " + Number(point.lat).toFixed(6);
+        if (fillAddress) {
+            fillStrayReportAddress(point, form);
+        }
+    }
+
+    function fillStrayReportAddress(point, form) {
+        if (!window.BMapGL || typeof window.BMapGL.Geocoder !== "function") {
+            return;
+        }
+        var geocoder = new BMapGL.Geocoder();
+        geocoder.getLocation(point, function (result) {
+            if (result && result.address) {
+                form.elements.foundAddress.value = result.address;
+            }
+        });
+    }
+
+    function submitStrayAnimalReport(form) {
+        var payload = values(form);
+        payload.estimatedAge = intVal(payload.estimatedAge);
+        payload.emergencyLevel = intVal(payload.emergencyLevel);
+        payload.longitude = decimalVal(payload.longitude);
+        payload.latitude = decimalVal(payload.latitude);
+        payload.foundTime = normalizeDateTime(payload.foundTime);
+        if (!payload.photoUrl) {
+            notice("请先上传动物照片。", true);
+            return;
+        }
+        var farAway = state.strayReportOriginPoint && state.strayReportPoint &&
+            calculateDistanceKm(state.strayReportOriginPoint, state.strayReportPoint) > 50;
+        if (farAway && !confirm("选择的发现位置距离当前定位超过50公里，确认继续提交吗？")) {
+            return;
+        }
+        request("/api/stray-animal-reports", {method: "POST", body: payload}).then(function () {
+            form.reset();
+            byId("strayAnimalPhotoPreview").hidden = true;
+            notice("上报已提交，管理员审核通过后会在地图中公开展示。");
+        });
+    }
+
+    function calculateDistanceKm(left, right) {
+        var lat1 = Number(left.lat) * Math.PI / 180;
+        var lat2 = Number(right.lat) * Math.PI / 180;
+        var dLat = lat2 - lat1;
+        var dLng = (Number(right.lng) - Number(left.lng)) * Math.PI / 180;
+        var value = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        return 6371 * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
     }
 
     function loadStores() {
@@ -2545,6 +2950,16 @@
         });
     }
 
+    function uploadStrayAnimalPhoto() {
+        uploadFile("strayAnimalPhotoFile", "stray-animal").then(function (file) {
+            var form = byId("strayReportForm");
+            var preview = byId("strayAnimalPhotoPreview");
+            form.elements.photoUrl.value = file.url;
+            preview.src = img(file.url);
+            preview.hidden = false;
+        });
+    }
+
     function uploadPetAvatar() {
         uploadFile("petAvatarFile", "pet").then(function (file) {
             byId("petForm").elements.avatar.value = file.url;
@@ -2794,6 +3209,23 @@
 
     function trimSlash(value) {
         return (value || "").replace(/\/+$/, "");
+    }
+
+    function formatDistance(value) {
+        var distance = Number(value);
+        return isFinite(distance) ? distance.toFixed(distance < 1 ? 2 : 1) + " km" : "未知距离";
+    }
+
+    function strayRescueStatusText(status) {
+        return {0: "待救助", 1: "收留申请中", 2: "已收留", 3: "已关闭"}[Number(status)] || "未知";
+    }
+
+    function strayAuditStatusText(status) {
+        return {0: "待审核", 1: "已通过", 2: "已驳回"}[Number(status)] || "未知";
+    }
+
+    function strayAdoptionStatusText(status) {
+        return {0: "待审核", 1: "已通过", 2: "已驳回", 3: "已取消"}[Number(status)] || "未知";
     }
 
     function statusLabel(status) {
