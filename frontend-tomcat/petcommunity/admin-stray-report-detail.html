@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>宠趣社区 - 流浪动物上报审核</title>
+    <link rel="stylesheet" href="assets/styles.css?v=20261112-stray-admin">
+</head>
+<body data-page="admin-stray-report-detail">
+<header class="site-header">
+    <a class="brand" href="home.html"><span class="brand-mark">宠</span><span><strong>宠趣社区</strong><small>一站式服务平台</small></span></a>
+    <nav class="top-nav" aria-label="页面导航">
+        <a data-nav-page="home" href="home.html">主页</a><a data-nav-page="dashboard" href="dashboard.html">总览</a>
+        <a data-nav-page="community" href="community.html">社区</a><a data-nav-page="videos" href="videos.html">短视频</a>
+        <a data-nav-page="stray-animals" href="stray-animals.html">流浪宠物收留</a><a data-nav-page="pets" href="pets.html">宠物档案</a>
+        <a data-nav-page="services" href="services.html">门店预约</a><a data-nav-page="shop" href="shop.html">模拟商城</a>
+        <a data-nav-page="profile" href="profile.html">个人主页</a><a data-nav-page="admin" href="admin.html">后台管理</a>
+    </nav>
+    <div class="user-tools"><span id="userBadge"></span><button type="button" class="secondary" data-action="logout">退出</button></div>
+</header>
+<main class="page-main audit-detail-page">
+    <section class="page-heading"><h1>流浪动物上报审核</h1><p>核对上报内容、照片和位置，在页面底部选择审核结果。</p></section>
+    <section class="notice" id="notice">审核内容正在加载。</section>
+    <div class="toolbar"><a class="button-link secondary" href="admin.html#strayReportAuditSection">返回上报审核</a></div>
+    <section class="panel" id="strayReportDetail"></section>
+    <section class="panel map-panel"><h2>上报位置</h2><div id="adminStrayReportMap" class="map-canvas" aria-label="流浪动物上报位置地图"></div></section>
+    <section class="panel">
+        <h2>审核与专业协助信息</h2>
+        <form id="strayReportReviewForm" class="form-grid">
+            <input name="reportId" type="hidden"><select name="status" required><option value="">选择审核结果</option><option value="1">审核通过并公开</option><option value="2">审核驳回</option></select>
+            <input name="healthStatus" placeholder="健康状态"><select name="dangerLevel"><option value="0">无明显危险</option><option value="1">需要谨慎接近</option><option value="2">较高危险</option><option value="3">专业人员处理</option></select>
+            <input name="professionalName" placeholder="专业人士姓名"><input name="professionalOrganization" placeholder="专业机构">
+            <input name="professionalPhone" placeholder="专业联系电话"><textarea name="captureInstruction" placeholder="捕捉与转运说明"></textarea>
+            <textarea name="dewormingAdvice" placeholder="基础驱虫建议"></textarea><textarea name="vaccineAdvice" placeholder="疫苗建议"></textarea>
+            <textarea name="reviewRemark" class="form-wide" placeholder="审核说明；驳回时必须填写原因"></textarea>
+            <button type="submit" class="form-wide">提交审核结果</button>
+        </form>
+    </section>
+</main>
+<script src="https://api.map.baidu.com/api?v=4.0&ak=rqg5KGWLvulQC2KW0fxqSWwYT3E0In0D"></script>
+<script src="assets/app.js?v=20261112-stray-admin"></script>
+</body>
+</html>

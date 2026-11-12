@@ -14,6 +14,7 @@ $pages = @(
     "video-publish.html",
     "video-detail.html",
     "admin-audit-detail.html",
+    "admin-stray-report-detail.html",
     "pets.html",
     "services.html",
     "shop.html",
@@ -82,7 +83,7 @@ foreach ($marker in @(
 }
 
 $script = Get-Content -Encoding UTF8 -Raw -LiteralPath (Join-Path $root "assets\app.js")
-foreach ($marker in @("initLoginPage", "initRegisterPage", "initDashboardPage", "initCommunityPage", "initVideosPage", "initVideoPublishPage", "initVideoDetailPage", "initAdminAuditDetailPage", "initPetsPage", "initServicesPage", "initShopPage", "initCheckoutPage", "initProfilePage", "initMyPostsPage", "initMyVideosPage", "initMyAppointmentsPage", "initMerchantAppointmentsPage", "initStoreRegisterPage", "initStrayAnimalsPage", "initStrayReportPage", "initAdminPage")) {
+foreach ($marker in @("initLoginPage", "initRegisterPage", "initDashboardPage", "initCommunityPage", "initVideosPage", "initVideoPublishPage", "initVideoDetailPage", "initAdminAuditDetailPage", "initAdminStrayReportDetailPage", "initPetsPage", "initServicesPage", "initShopPage", "initCheckoutPage", "initProfilePage", "initMyPostsPage", "initMyVideosPage", "initMyAppointmentsPage", "initMerchantAppointmentsPage", "initStoreRegisterPage", "initStrayAnimalsPage", "initStrayReportPage", "initAdminPage")) {
     if ($script -notmatch $marker) {
         throw "App script missing initializer: $marker"
     }

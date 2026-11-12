@@ -10,6 +10,7 @@
         products: [],
         checkoutCart: [],
         adminUserFilterId: null,
+        adminStrayAnimals: [],
         profileUserId: null,
         profileFollowed: false,
         nearbyStoreMap: null,
@@ -21,7 +22,8 @@
         strayAnimalCardHighlightTimer: null,
         strayReportMap: null,
         strayReportPoint: null,
-        strayReportOriginPoint: null
+        strayReportOriginPoint: null,
+        adminStrayReportMap: null
     };
 
     var actions = {
@@ -66,7 +68,10 @@
         loadAdminTopics: loadAdminTopics,
         loadAdminComments: openAdminComments,
         loadReports: loadReports,
-        loadSensitiveWords: loadSensitiveWords
+        loadSensitiveWords: loadSensitiveWords,
+        loadAdminStrayReports: loadAdminStrayReports,
+        loadAdminStrayAnimals: loadAdminStrayAnimals,
+        loadAdminStrayApplications: loadAdminStrayApplications
     };
 
     document.addEventListener("DOMContentLoaded", init);
@@ -108,6 +113,9 @@
         if (page === "admin-audit-detail") {
             navPage = "admin";
         }
+        if (page === "admin-stray-report-detail") {
+            navPage = "admin";
+        }
         if (page === "stray-report") {
             navPage = "stray-animals";
         }
@@ -115,7 +123,7 @@
         if (page === "dashboard" && !requireAdmin()) {
             return;
         }
-        if ((page === "admin" || page === "admin-audit-detail") && !requireAdmin()) {
+        if ((page === "admin" || page === "admin-audit-detail" || page === "admin-stray-report-detail") && !requireAdmin()) {
             return;
         }
         if ((page === "merchant-product-create" || page === "merchant-products") && !requireMerchant()) {
@@ -176,6 +184,8 @@
             initAdminPage();
         } else if (page === "admin-audit-detail") {
             initAdminAuditDetailPage();
+        } else if (page === "admin-stray-report-detail") {
+            initAdminStrayReportDetailPage();
         } else if (page === "merchant-product-create") {
             initMerchantProductCreatePage();
         } else if (page === "merchant-products") {
@@ -320,6 +330,14 @@
         bindSubmit("adminUserSearchForm", searchAdminUsers);
         loadAdminData();
         loadAdminTopics();
+        loadAdminStrayReports();
+        loadAdminStrayAnimals();
+        loadAdminStrayApplications();
+    }
+
+    function initAdminStrayReportDetailPage() {
+        bindSubmit("strayReportReviewForm", reviewAdminStrayReport);
+        loadAdminStrayReportDetail();
     }
 
     function initMerchantProductCreatePage() {
@@ -2464,6 +2482,205 @@
         if (link) {
             link.hidden = !ownProfile || !isApprovedMerchant();
         }
+    }
+
+    function loadAdminStrayReportDetail() {
+        var reportId = queryParam("id");
+        if (!reportId) {
+            notice("缺少上报记录ID。", true);
+            return;
+        }
+        request("/api/admin/stray-animal-reports/" + reportId).then(function (report) {
+            byId("strayReportDetail").innerHTML = adminStrayReportDetailHtml(report);
+            byId("strayReportReviewForm").hidden = Number(report.status) !== 0;
+            renderAdminStrayReportMap(report);
+            notice(Number(report.status) === 0 ? "上报内容已加载，请在页面底部选择审核结果。" : "该上报记录已经处理。", Number(report.status) !== 0);
+        });
+    }
+
+    function adminStrayReportDetailHtml(report) {
+        var html = "<div class='stray-detail-layout'><img src='" + img(report.photoUrl) + "' alt='上报动物照片'><div>";
+        html += "<h2>" + text(report.temporaryName || report.species) + "</h2><p>上报用户：#" + text(report.reporterUserId) + "</p>";
+        html += "<p>种类：" + text(report.species) + "，性别：" + text(report.gender || "未知") + "，估算年龄：" + text(report.estimatedAge || "未知") + "</p>";
+        html += "<p>发现时间：" + text(report.foundTime) + "</p><p>发现地址：" + text(report.foundAddress) + "</p>";
+        html += "<p>外观特征：" + text(report.appearanceDescription) + "</p><p>现场健康描述：" + text(report.healthDescription) + "</p>";
+        html += "<p>紧急程度：" + text(report.emergencyLevel) + "，上报联系电话：" + text(report.reporterPhone) + "</p>";
+        html += "<p>审核状态：" + text(strayAuditStatusText(report.status)) + "，审核说明：" + text(report.reviewRemark || "暂无") + "</p>";
+        return html + "</div></div>";
+    }
+
+    function renderAdminStrayReportMap(report) {
+        state.adminStrayReportMap = createBaiduMap("adminStrayReportMap");
+        if (!state.adminStrayReportMap) {
+            return;
+        }
+        var point = new BMapGL.Point(Number(report.longitude), Number(report.latitude));
+        showMapPoint(state.adminStrayReportMap, point);
+    }
+
+    function reviewAdminStrayReport(form) {
+        var payload = values(form);
+        payload.status = intVal(payload.status);
+        payload.dangerLevel = intVal(payload.dangerLevel);
+        if (payload.status !== 1 && payload.status !== 2) {
+            notice("请选择审核结果。", true);
+            return;
+        }
+        if (payload.status === 2 && !payload.reviewRemark) {
+            notice("驳回上报时必须填写审核原因。", true);
+            return;
+        }
+        if (payload.status === 1 && !hasCompleteStrayReview(payload)) {
+            notice("审核通过时请完整填写健康、专业协助、捕捉、驱虫和疫苗信息。", true);
+            return;
+        }
+        request("/api/admin/stray-animal-reports/" + queryParam("id") + "/review", {method: "PUT", body: payload}).then(function () {
+            notice(payload.status === 1 ? "上报审核通过，已创建公开动物档案。" : "上报已驳回。");
+            window.setTimeout(function () { window.location.href = "admin.html#strayReportAuditSection"; }, 700);
+        });
+    }
+
+    function hasCompleteStrayReview(payload) {
+        return payload.healthStatus && payload.dangerLevel !== null && payload.professionalName &&
+            payload.professionalOrganization && payload.professionalPhone && payload.captureInstruction &&
+            payload.dewormingAdvice && payload.vaccineAdvice;
+    }
+
+    function loadAdminStrayReports(trigger) {
+        if (trigger) {
+            scrollToAdminSection("strayReportAuditSection");
+        }
+        request("/api/admin/stray-animal-reports").then(function (list) {
+            renderRows("adminStrayReportRows", list || [], function (item) {
+                var action = Number(item.status) === 0
+                    ? "<button type='button' data-admin-stray-report='" + text(item.id) + "'>审核</button>"
+                    : "<button type='button' class='secondary' data-admin-stray-report='" + text(item.id) + "'>查看</button>";
+                return "<tr><td>" + text(item.id) + "</td><td>" + text(item.reporterUserId) + "</td><td>" +
+                    text(item.temporaryName || item.species) + "</td><td>" + text(item.foundAddress) + "</td><td>" +
+                    text(strayAuditStatusText(item.status)) + "</td><td>" + action + "</td></tr>";
+            });
+            bindAdminStrayReportButtons();
+        });
+    }
+
+    function bindAdminStrayReportButtons() {
+        forEach(document.querySelectorAll("[data-admin-stray-report]"), function (button) {
+            button.onclick = function () {
+                window.location.href = "admin-stray-report-detail.html?id=" + encodeURIComponent(button.getAttribute("data-admin-stray-report"));
+            };
+        });
+    }
+
+    function loadAdminStrayAnimals(trigger) {
+        if (trigger) {
+            scrollToAdminSection("strayAnimalManagementSection");
+        }
+        request("/api/admin/stray-animals").then(function (list) {
+            state.adminStrayAnimals = list || [];
+            renderRows("adminStrayAnimalRows", state.adminStrayAnimals, adminStrayAnimalRowHtml);
+            bindAdminStrayAnimalButtons();
+        });
+    }
+
+    function adminStrayAnimalRowHtml(item) {
+        return "<tr><td>" + text(item.id) + "</td><td>" + text(item.temporaryName || item.species) + "</td><td>" +
+            text(item.foundAddress) + "</td><td><select data-stray-rescue-status='" + text(item.id) + "'>" +
+            strayRescueStatusOptions(item.rescueStatus) + "</select></td><td><select data-stray-public-status='" + text(item.id) + "'>" +
+            strayPublicStatusOptions(item.status) + "</select></td><td><button type='button' data-update-stray-animal='" +
+            text(item.id) + "'>保存</button></td></tr>";
+    }
+
+    function bindAdminStrayAnimalButtons() {
+        forEach(document.querySelectorAll("[data-update-stray-animal]"), function (button) {
+            button.onclick = function () {
+                updateAdminStrayAnimal(button.getAttribute("data-update-stray-animal"));
+            };
+        });
+    }
+
+    function strayRescueStatusOptions(current) {
+        return [[0, "待救助"], [1, "收留申请中"], [2, "已收留"], [3, "已关闭"]].map(function (item) {
+            return "<option value='" + item[0] + "'" + (Number(current) === item[0] ? " selected" : "") + ">" + item[1] + "</option>";
+        }).join("");
+    }
+
+    function strayPublicStatusOptions(current) {
+        return [[1, "公开"], [0, "停用"]].map(function (item) {
+            return "<option value='" + item[0] + "'" + (Number(current) === item[0] ? " selected" : "") + ">" + item[1] + "</option>";
+        }).join("");
+    }
+
+    function updateAdminStrayAnimal(animalId) {
+        var item = findById(state.adminStrayAnimals, animalId);
+        var rescue = document.querySelector("[data-stray-rescue-status='" + animalId + "']");
+        var visible = document.querySelector("[data-stray-public-status='" + animalId + "']");
+        var payload = {
+            healthStatus: item.healthStatus,
+            dangerLevel: item.dangerLevel,
+            rescueStatus: intVal(rescue.value),
+            professionalName: item.professionalName,
+            professionalOrganization: item.professionalOrganization,
+            professionalPhone: item.professionalPhone,
+            captureInstruction: item.captureInstruction,
+            dewormingAdvice: item.dewormingAdvice,
+            vaccineAdvice: item.vaccineAdvice,
+            status: intVal(visible.value)
+        };
+        request("/api/admin/stray-animals/" + animalId, {method: "PUT", body: payload}).then(function () {
+            notice("流浪动物状态已更新。");
+            loadAdminStrayAnimals();
+        });
+    }
+
+    function loadAdminStrayApplications(trigger) {
+        if (trigger) {
+            scrollToAdminSection("strayAdoptionAuditSection");
+        }
+        request("/api/admin/stray-adoption-applications").then(function (list) {
+            renderRows("adminStrayApplicationRows", list || [], adminStrayApplicationRowHtml);
+            bindAdminStrayApplicationButtons();
+        });
+    }
+
+    function adminStrayApplicationRowHtml(item) {
+        var controls = text(strayAdoptionStatusText(item.status));
+        var remarkCell = text(item.reviewRemark || "暂无");
+        if (Number(item.status) === 0) {
+            controls = "<button type='button' data-review-stray-adoption='" + text(item.id) + "' data-status='1'>通过</button> " +
+                "<button type='button' class='danger' data-review-stray-adoption='" + text(item.id) + "' data-status='2'>驳回</button>";
+            remarkCell = "<input data-stray-adoption-remark='" + text(item.id) + "' placeholder='必填审核说明'>";
+        }
+        return "<tr><td>" + text(item.id) + "</td><td>#" + text(item.animalId) + "</td><td>#" + text(item.applicantUserId) +
+            "</td><td><p>电话：" + text(item.contactPhone) + "</p><p>居住条件：" + text(item.livingCondition) +
+            "</p><p>养宠经验：" + text(item.petExperience || "未填写") + "</p><p>申请原因：" + text(item.applicationReason) +
+            "</p></td><td>" + remarkCell + "</td><td>" + controls + "</td></tr>";
+    }
+
+    function bindAdminStrayApplicationButtons() {
+        forEach(document.querySelectorAll("[data-review-stray-adoption]"), function (button) {
+            button.onclick = function () {
+                reviewAdminStrayApplication(button);
+            };
+        });
+    }
+
+    function reviewAdminStrayApplication(button) {
+        var id = button.getAttribute("data-review-stray-adoption");
+        var remarkInput = document.querySelector("[data-stray-adoption-remark='" + id + "']");
+        var remark = remarkInput ? remarkInput.value.trim() : "";
+        if (!remark) {
+            notice("请填写收留申请审核说明。", true);
+            return;
+        }
+        var status = intVal(button.getAttribute("data-status"));
+        request("/api/admin/stray-adoption-applications/" + id + "/review", {
+            method: "PUT",
+            body: {status: status, reviewRemark: remark}
+        }).then(function () {
+            notice(status === 1 ? "收留申请已通过。" : "收留申请已驳回。");
+            loadAdminStrayApplications();
+            loadAdminStrayAnimals();
+        });
     }
 
     function loadAdminData() {

@@ -42,6 +42,9 @@
         <button data-action="loadAdminComments">评论管理</button>
         <button data-action="loadReports">举报队列</button>
         <button data-action="loadSensitiveWords">敏感词库</button>
+        <button data-action="loadAdminStrayReports">流浪动物上报审核</button>
+        <button data-action="loadAdminStrayAnimals">流浪动物管理</button>
+        <button data-action="loadAdminStrayApplications">收留申请审核</button>
     </div>
     <div class="metric-grid" id="adminMetrics"></div>
     <section class="panel">
@@ -110,6 +113,18 @@
                 <tbody id="approvedPostRows"></tbody>
             </table>
         </div>
+    </section>
+    <section class="panel admin-anchor-section" id="strayReportAuditSection">
+        <div class="panel-title-row"><div><h2>流浪动物上报审核</h2><p>查看完整照片、位置和上报说明后处理。</p></div><button type="button" class="secondary" data-action="loadAdminStrayReports">刷新</button></div>
+        <div class="table-wrap"><table><thead><tr><th>ID</th><th>上报用户</th><th>动物</th><th>发现位置</th><th>状态</th><th>操作</th></tr></thead><tbody id="adminStrayReportRows"></tbody></table></div>
+    </section>
+    <section class="panel admin-anchor-section" id="strayAnimalManagementSection">
+        <div class="panel-title-row"><div><h2>流浪动物管理</h2><p>维护公开状态、救助状态和交接结果。</p></div><button type="button" class="secondary" data-action="loadAdminStrayAnimals">刷新</button></div>
+        <div class="table-wrap"><table><thead><tr><th>ID</th><th>动物</th><th>位置</th><th>救助状态</th><th>公开状态</th><th>操作</th></tr></thead><tbody id="adminStrayAnimalRows"></tbody></table></div>
+    </section>
+    <section class="panel admin-anchor-section" id="strayAdoptionAuditSection">
+        <div class="panel-title-row"><div><h2>收留申请审核</h2><p>核对申请人的联系方式、居住条件和养宠经验。</p></div><button type="button" class="secondary" data-action="loadAdminStrayApplications">刷新</button></div>
+        <div class="table-wrap"><table><thead><tr><th>ID</th><th>动物</th><th>申请用户</th><th>申请资料</th><th>审核说明</th><th>操作</th></tr></thead><tbody id="adminStrayApplicationRows"></tbody></table></div>
     </section>
     <section class="panel admin-anchor-section" id="topicManagementSection">
         <h2>话题审核与管理</h2>
