@@ -1,6 +1,7 @@
 package com.example.petcommunity3.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.example.petcommunity3.dto.StrayAnimalReportCreateDTO;
 import com.example.petcommunity3.dto.StrayAnimalReportReviewDTO;
 import com.example.petcommunity3.entity.StrayAnimal;
@@ -51,7 +52,7 @@ public class StrayAnimalReportServiceImpl implements StrayAnimalReportService {
                         .in(StrayAnimalReport::getStatus,
                                 StrayAnimalReport.STATUS_PENDING,
                                 StrayAnimalReport.STATUS_APPROVED)
-                        .ge(StrayAnimalReport::getCreateTime, LocalDateTime.now().minusHours(24))
+                        .gt(StrayAnimalReport::getCreateTime, LocalDateTime.now().minusHours(24))
         );
         boolean duplicate = recentReports.stream()
                 .filter(report -> report.getLongitude() != null && report.getLatitude() != null)
@@ -128,9 +129,6 @@ public class StrayAnimalReportServiceImpl implements StrayAnimalReportService {
         if (report == null) {
             throw new RuntimeException("上报记录不存在");
         }
-        if (!Integer.valueOf(StrayAnimalReport.STATUS_PENDING).equals(report.getStatus())) {
-            throw new RuntimeException("上报记录已处理");
-        }
 
         if (Integer.valueOf(StrayAnimalReport.STATUS_REJECTED).equals(dto.getStatus())) {
             if (!StringUtils.hasText(dto.getReviewRemark())) {
@@ -138,6 +136,24 @@ public class StrayAnimalReportServiceImpl implements StrayAnimalReportService {
             }
         } else {
             validateApproval(dto);
+        }
+
+        LocalDateTime reviewTime = LocalDateTime.now();
+        int updated = reportMapper.update(
+                null,
+                new LambdaUpdateWrapper<StrayAnimalReport>()
+                        .eq(StrayAnimalReport::getId, reportId)
+                        .eq(StrayAnimalReport::getStatus, StrayAnimalReport.STATUS_PENDING)
+                        .set(StrayAnimalReport::getStatus, dto.getStatus())
+                        .set(StrayAnimalReport::getReviewerId, reviewerId)
+                        .set(StrayAnimalReport::getReviewRemark, trimToNull(dto.getReviewRemark()))
+                        .set(StrayAnimalReport::getReviewTime, reviewTime)
+        );
+        if (updated != 1) {
+            throw new RuntimeException("上报记录已处理");
+        }
+
+        if (Integer.valueOf(StrayAnimalReport.STATUS_APPROVED).equals(dto.getStatus())) {
             StrayAnimal animal = new StrayAnimal();
             animal.setReportId(reportId);
             animal.setTemporaryName(report.getTemporaryName());
@@ -162,12 +178,6 @@ public class StrayAnimalReportServiceImpl implements StrayAnimalReportService {
             animal.setStatus(1);
             animalMapper.insert(animal);
         }
-
-        report.setStatus(dto.getStatus());
-        report.setReviewerId(reviewerId);
-        report.setReviewRemark(trimToNull(dto.getReviewRemark()));
-        report.setReviewTime(LocalDateTime.now());
-        reportMapper.updateById(report);
     }
 
     private void validateSubmission(StrayAnimalReportCreateDTO dto) {

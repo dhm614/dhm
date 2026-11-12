@@ -1,5 +1,9 @@
 package com.example.petcommunity3.service.impl;
 
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.example.petcommunity3.dto.StrayAnimalReportCreateDTO;
 import com.example.petcommunity3.dto.StrayAnimalReportReviewDTO;
 import com.example.petcommunity3.entity.StrayAnimal;
@@ -7,6 +11,7 @@ import com.example.petcommunity3.entity.StrayAnimalReport;
 import com.example.petcommunity3.mapper.StrayAnimalMapper;
 import com.example.petcommunity3.mapper.StrayAnimalReportMapper;
 import com.example.petcommunity3.service.MerchantPermissionService;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +23,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -41,6 +47,7 @@ class StrayAnimalReportFlowTest {
         assertThat(report.getSpecies()).isEqualTo("猫");
         assertThat(report.getPhotoUrl()).isEqualTo("/uploads/stray-animal/cat.jpg");
         assertThat(report.getStatus()).isEqualTo(StrayAnimalReport.STATUS_PENDING);
+        verify(context.animalMapper, never()).insert(any(StrayAnimal.class));
     }
 
     @Test
@@ -88,6 +95,47 @@ class StrayAnimalReportFlowTest {
     }
 
     @Test
+    void duplicateQueryFiltersUserSpeciesStatusesAndStrictTwentyFourHourCutoff() {
+        TestContext context = context();
+        when(context.reportMapper.selectList(any())).thenReturn(List.of());
+        LocalDateTime earliestCutoff = LocalDateTime.now().minusHours(24);
+
+        context.service.submit(7L, validReport());
+
+        LocalDateTime latestCutoff = LocalDateTime.now().minusHours(24);
+        ArgumentCaptor<LambdaQueryWrapper<StrayAnimalReport>> captor = queryWrapperCaptor();
+        verify(context.reportMapper).selectList(captor.capture());
+        LambdaQueryWrapper<StrayAnimalReport> wrapper = captor.getValue();
+        String sql = wrapper.getSqlSegment().toLowerCase();
+        assertThat(sql)
+                .contains("reporter_user_id")
+                .contains("species")
+                .contains("status")
+                .contains("create_time >")
+                .doesNotContain("create_time >=");
+        assertThat(wrapper.getParamNameValuePairs().values())
+                .contains(7L, "猫", StrayAnimalReport.STATUS_PENDING, StrayAnimalReport.STATUS_APPROVED);
+        assertThat(wrapper.getParamNameValuePairs().values())
+                .filteredOn(LocalDateTime.class::isInstance)
+                .singleElement()
+                .asInstanceOf(org.assertj.core.api.InstanceOfAssertFactories.LOCAL_DATE_TIME)
+                .isBetween(earliestCutoff, latestCutoff);
+    }
+
+    @Test
+    void submitRejectsSameSpeciesAtTwoHundredMeterBoundary() {
+        TestContext context = context();
+        StrayAnimalReport previous = new StrayAnimalReport();
+        previous.setLongitude(new BigDecimal("118.82000"));
+        previous.setLatitude(new BigDecimal("31.9547986"));
+        when(context.reportMapper.selectList(any())).thenReturn(List.of(previous));
+
+        assertThatThrownBy(() -> context.service.submit(7L, validReport()))
+                .hasMessage("24小时内已提交过附近同类动物");
+        verify(context.reportMapper, never()).insert(any(StrayAnimalReport.class));
+    }
+
+    @Test
     void submitAllowsSameSpeciesFartherThanTwoHundredMeters() {
         TestContext context = context();
         StrayAnimalReport previous = new StrayAnimalReport();
@@ -101,14 +149,38 @@ class StrayAnimalReportFlowTest {
     }
 
     @Test
-    void listMethodsReturnMapperResults() {
+    void listMineFiltersByUserAndOrdersNewestFirst() {
         TestContext context = context();
         StrayAnimalReport report = new StrayAnimalReport();
         when(context.reportMapper.selectList(any())).thenReturn(List.of(report));
 
         assertThat(context.service.listMine(7L)).containsExactly(report);
-        assertThat(context.service.listForAdmin(StrayAnimalReport.STATUS_PENDING)).containsExactly(report);
         verify(context.permissionService).requireActiveUser(7L);
+        ArgumentCaptor<LambdaQueryWrapper<StrayAnimalReport>> captor = queryWrapperCaptor();
+        verify(context.reportMapper).selectList(captor.capture());
+        LambdaQueryWrapper<StrayAnimalReport> wrapper = captor.getValue();
+        assertThat(wrapper.getSqlSegment().toLowerCase())
+                .contains("reporter_user_id")
+                .contains("order by create_time desc");
+        assertThat(wrapper.getParamNameValuePairs().values()).contains(7L);
+    }
+
+    @Test
+    void listForAdminFiltersStatusAndOrdersNewestFirst() {
+        TestContext context = context();
+        StrayAnimalReport report = new StrayAnimalReport();
+        when(context.reportMapper.selectList(any())).thenReturn(List.of(report));
+
+        assertThat(context.service.listForAdmin(StrayAnimalReport.STATUS_PENDING)).containsExactly(report);
+
+        ArgumentCaptor<LambdaQueryWrapper<StrayAnimalReport>> captor = queryWrapperCaptor();
+        verify(context.reportMapper).selectList(captor.capture());
+        LambdaQueryWrapper<StrayAnimalReport> wrapper = captor.getValue();
+        assertThat(wrapper.getSqlSegment().toLowerCase())
+                .contains("status")
+                .contains("order by create_time desc");
+        assertThat(wrapper.getParamNameValuePairs().values())
+                .contains(StrayAnimalReport.STATUS_PENDING);
     }
 
     @Test
@@ -131,15 +203,32 @@ class StrayAnimalReportFlowTest {
         verify(context.animalMapper).insert(captor.capture());
         StrayAnimal animal = captor.getValue();
         assertThat(animal.getReportId()).isEqualTo(12L);
+        assertThat(animal.getTemporaryName()).isEqualTo("小橘");
         assertThat(animal.getSpecies()).isEqualTo("猫");
+        assertThat(animal.getGender()).isEqualTo("未知");
+        assertThat(animal.getEstimatedAge()).isEqualTo(2);
         assertThat(animal.getPhotoUrl()).isEqualTo("/uploads/stray-animal/cat.jpg");
+        assertThat(animal.getFoundAddress()).isEqualTo("南京市江宁区弘景大道 99 号");
+        assertThat(animal.getLongitude()).isEqualByComparingTo("118.82000");
+        assertThat(animal.getLatitude()).isEqualByComparingTo("31.95300");
+        assertThat(animal.getFoundTime()).isEqualTo(LocalDateTime.of(2026, 11, 11, 9, 30));
+        assertThat(animal.getAppearanceDescription()).isEqualTo("橘色短毛，左耳有缺口");
+        assertThat(animal.getHealthStatus()).isEqualTo("轻微外伤，需观察");
+        assertThat(animal.getDangerLevel()).isEqualTo(1);
         assertThat(animal.getRescueStatus()).isEqualTo(StrayAnimal.RESCUE_WAITING);
         assertThat(animal.getStatus()).isEqualTo(1);
+        assertThat(animal.getProfessionalName()).isEqualTo("王医生");
+        assertThat(animal.getProfessionalOrganization()).isEqualTo("江宁宠物救助站");
         assertThat(animal.getProfessionalPhone()).isEqualTo("025-86189999");
-        assertThat(report.getStatus()).isEqualTo(StrayAnimalReport.STATUS_APPROVED);
-        assertThat(report.getReviewerId()).isEqualTo(3L);
-        assertThat(report.getReviewTime()).isNotNull();
-        verify(context.reportMapper).updateById(report);
+        assertThat(animal.getCaptureInstruction()).isEqualTo("使用航空箱和食物诱导，避免徒手抓取");
+        assertThat(animal.getDewormingAdvice()).isEqualTo("隔离观察后进行体内外驱虫");
+        assertThat(animal.getVaccineAdvice()).isEqualTo("健康稳定后接种基础疫苗");
+        ArgumentCaptor<LambdaUpdateWrapper<StrayAnimalReport>> updateCaptor = updateWrapperCaptor();
+        verify(context.reportMapper).update(isNull(), updateCaptor.capture());
+        assertPendingReportUpdate(updateCaptor.getValue(), 12L);
+        assertThat(updateCaptor.getValue().getParamNameValuePairs().values())
+                .contains(StrayAnimalReport.STATUS_APPROVED, 3L, "信息核验通过")
+                .anyMatch(LocalDateTime.class::isInstance);
     }
 
     @Test
@@ -153,23 +242,30 @@ class StrayAnimalReportFlowTest {
 
         context.service.review(12L, 3L, dto);
 
-        assertThat(report.getStatus()).isEqualTo(StrayAnimalReport.STATUS_REJECTED);
-        assertThat(report.getReviewRemark()).isEqualTo("照片无法确认位置");
-        verify(context.reportMapper).updateById(report);
+        ArgumentCaptor<LambdaUpdateWrapper<StrayAnimalReport>> updateCaptor = updateWrapperCaptor();
+        verify(context.reportMapper).update(isNull(), updateCaptor.capture());
+        assertPendingReportUpdate(updateCaptor.getValue(), 12L);
+        assertThat(updateCaptor.getValue().getParamNameValuePairs().values())
+                .contains(StrayAnimalReport.STATUS_REJECTED, 3L, "照片无法确认位置");
         verify(context.animalMapper, never()).insert(any(StrayAnimal.class));
     }
 
     @Test
-    void reviewRejectsMissingOrProcessedReport() {
+    void reviewRejectsMissingReport() {
         TestContext context = context();
         assertThatThrownBy(() -> context.service.review(99L, 3L, approvedReview()))
                 .hasMessage("上报记录不存在");
+    }
 
-        StrayAnimalReport report = pendingReport();
-        report.setStatus(StrayAnimalReport.STATUS_APPROVED);
-        when(context.reportMapper.selectById(12L)).thenReturn(report);
+    @Test
+    void reviewRejectsWhenAtomicPendingUpdateAffectsNoRows() {
+        TestContext context = context();
+        when(context.reportMapper.selectById(12L)).thenReturn(pendingReport());
+        when(context.reportMapper.update(isNull(), any())).thenReturn(0);
+
         assertThatThrownBy(() -> context.service.review(12L, 3L, approvedReview()))
                 .hasMessage("上报记录已处理");
+        verify(context.animalMapper, never()).insert(any(StrayAnimal.class));
     }
 
     @Test
@@ -181,6 +277,7 @@ class StrayAnimalReportFlowTest {
 
         assertThatThrownBy(() -> context.service.review(12L, 3L, dto))
                 .hasMessage("请填写驳回原因");
+        verify(context.reportMapper, never()).update(isNull(), any());
     }
 
     @Test
@@ -192,6 +289,7 @@ class StrayAnimalReportFlowTest {
 
         assertThatThrownBy(() -> context.service.review(12L, 3L, dto))
                 .hasMessage("请完整填写审核发布信息");
+        verify(context.reportMapper, never()).update(isNull(), any());
     }
 
     @Test
@@ -204,15 +302,23 @@ class StrayAnimalReportFlowTest {
     }
 
     private TestContext context() {
+        initializeReportTableInfo();
         StrayAnimalReportMapper reportMapper = mock(StrayAnimalReportMapper.class);
         StrayAnimalMapper animalMapper = mock(StrayAnimalMapper.class);
         MerchantPermissionService permissionService = mock(MerchantPermissionService.class);
+        when(reportMapper.update(isNull(), any())).thenReturn(1);
         StrayAnimalReportServiceImpl service = new StrayAnimalReportServiceImpl(
                 reportMapper,
                 animalMapper,
                 permissionService
         );
         return new TestContext(service, reportMapper, animalMapper, permissionService);
+    }
+
+    private void initializeReportTableInfo() {
+        MapperBuilderAssistant assistant = new MapperBuilderAssistant(new MybatisConfiguration(), "");
+        assistant.setCurrentNamespace(StrayAnimalReportMapper.class.getName());
+        TableInfoHelper.initTableInfo(assistant, StrayAnimalReport.class);
     }
 
     private StrayAnimalReportCreateDTO validReport() {
@@ -268,6 +374,25 @@ class StrayAnimalReportFlowTest {
         dto.setDewormingAdvice("隔离观察后进行体内外驱虫");
         dto.setVaccineAdvice("健康稳定后接种基础疫苗");
         return dto;
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private ArgumentCaptor<LambdaQueryWrapper<StrayAnimalReport>> queryWrapperCaptor() {
+        return ArgumentCaptor.forClass((Class) LambdaQueryWrapper.class);
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private ArgumentCaptor<LambdaUpdateWrapper<StrayAnimalReport>> updateWrapperCaptor() {
+        return ArgumentCaptor.forClass((Class) LambdaUpdateWrapper.class);
+    }
+
+    private void assertPendingReportUpdate(LambdaUpdateWrapper<StrayAnimalReport> wrapper,
+                                           Long reportId) {
+        assertThat(wrapper.getSqlSegment().toLowerCase())
+                .contains("id =")
+                .contains("and status =");
+        assertThat(wrapper.getParamNameValuePairs().values())
+                .contains(reportId, StrayAnimalReport.STATUS_PENDING);
     }
 
     private record TestContext(StrayAnimalReportServiceImpl service,
