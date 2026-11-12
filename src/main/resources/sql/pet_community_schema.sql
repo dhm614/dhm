@@ -26,6 +26,9 @@ DROP TABLE IF EXISTS content_report;
 DROP TABLE IF EXISTS sensitive_word;
 DROP TABLE IF EXISTS user_follow;
 DROP TABLE IF EXISTS user_notification;
+DROP TABLE IF EXISTS stray_adoption_application;
+DROP TABLE IF EXISTS stray_animal;
+DROP TABLE IF EXISTS stray_animal_report;
 DROP TABLE IF EXISTS sys_user;
 
 SET FOREIGN_KEY_CHECKS = 1;
@@ -49,6 +52,51 @@ CREATE TABLE sys_user (
     KEY idx_role_status (role, status),
     KEY idx_merchant_status (is_merchant, merchant_apply_status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
+
+CREATE TABLE stray_animal_report (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    reporter_user_id BIGINT NOT NULL,
+    temporary_name VARCHAR(100), species VARCHAR(30) NOT NULL, gender VARCHAR(20), estimated_age INT,
+    photo_url VARCHAR(500) NOT NULL, found_address VARCHAR(255) NOT NULL,
+    longitude DECIMAL(10,6) NOT NULL, latitude DECIMAL(10,6) NOT NULL, found_time DATETIME NOT NULL,
+    appearance_description VARCHAR(1000) NOT NULL, health_description VARCHAR(1000) NOT NULL,
+    emergency_level INT, reporter_phone VARCHAR(30) NOT NULL, status TINYINT NOT NULL DEFAULT 0,
+    reviewer_id BIGINT, review_remark VARCHAR(500), review_time DATETIME,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_stray_report_user (reporter_user_id, create_time),
+    KEY idx_stray_report_status_time (status, create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='流浪动物上报表';
+
+CREATE TABLE stray_animal (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    report_id BIGINT, temporary_name VARCHAR(100), species VARCHAR(30) NOT NULL, gender VARCHAR(20), estimated_age INT,
+    photo_url VARCHAR(500) NOT NULL, found_address VARCHAR(255) NOT NULL,
+    longitude DECIMAL(10,6) NOT NULL, latitude DECIMAL(10,6) NOT NULL, found_time DATETIME NOT NULL,
+    appearance_description VARCHAR(1000) NOT NULL, health_status VARCHAR(500) NOT NULL,
+    danger_level INT NOT NULL DEFAULT 0, rescue_status TINYINT NOT NULL DEFAULT 0,
+    professional_name VARCHAR(100) NOT NULL, professional_organization VARCHAR(150) NOT NULL,
+    professional_phone VARCHAR(30) NOT NULL, capture_instruction VARCHAR(1000) NOT NULL,
+    deworming_advice VARCHAR(1000) NOT NULL, vaccine_advice VARCHAR(1000) NOT NULL,
+    status TINYINT NOT NULL DEFAULT 1,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_stray_animal_report (report_id),
+    KEY idx_stray_animal_status_rescue (status, rescue_status),
+    KEY idx_stray_animal_coordinates (longitude, latitude)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='公开流浪动物档案表';
+
+CREATE TABLE stray_adoption_application (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    animal_id BIGINT NOT NULL, applicant_user_id BIGINT NOT NULL,
+    contact_phone VARCHAR(30) NOT NULL, living_condition VARCHAR(1000) NOT NULL,
+    pet_experience VARCHAR(1000), application_reason VARCHAR(1000) NOT NULL,
+    status TINYINT NOT NULL DEFAULT 0, reviewer_id BIGINT, review_remark VARCHAR(500), review_time DATETIME,
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_stray_adoption_animal_status (animal_id, status),
+    KEY idx_stray_adoption_user_status (applicant_user_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='流浪动物收留申请表';
 
 CREATE TABLE merchant_application (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '商户资格申请ID',
