@@ -39,6 +39,9 @@ public class FileController {
                 || "short-video-cover".equalsIgnoreCase(safeModule)) {
             merchantPermissionService.requireActiveUser(userId);
         }
+        if ("stray-animal".equalsIgnoreCase(safeModule)) {
+            merchantPermissionService.requireActiveUser(userId);
+        }
         return Result.success(fileStorageService.upload(file, safeModule));
     }
 

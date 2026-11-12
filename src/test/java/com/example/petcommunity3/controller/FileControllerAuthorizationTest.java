@@ -73,6 +73,19 @@ class FileControllerAuthorizationTest {
         verify(storage, never()).upload(any(), anyString());
     }
 
+    @Test
+    void strayAnimalUploadRequiresActiveUser() {
+        FileStorageService storage = mock(FileStorageService.class);
+        MerchantPermissionService permission = rejectingActiveUserPermission("login required");
+        FileController controller = new FileController(storage, permission);
+        MockMultipartFile file = new MockMultipartFile("file", "stray.jpg", "image/jpeg", new byte[]{1});
+
+        assertThatThrownBy(() -> controller.upload(file, "stray-animal", null))
+                .hasMessage("login required");
+        verify(permission).requireActiveUser(null);
+        verify(storage, never()).upload(any(), anyString());
+    }
+
     private MerchantPermissionService rejectingActiveUserPermission(String message) {
         return mock(MerchantPermissionService.class, invocation -> {
             if ("requireActiveUser".equals(invocation.getMethod().getName())) {
