@@ -16,9 +16,11 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -150,6 +152,12 @@ public class MockDataService {
         for (Post post : videos) {
             videosByTopic.computeIfAbsent(post.getTopic(), k -> new ArrayList<>()).add(post);
         }
+        // 长尾曝光：新视频拿大头、老视频只剩长尾，否则人人看遍全站，ItemCF 共现矩阵会饱和成全 1
+        double[] exposure = new double[videos.size()];
+        for (int i = 0; i < videos.size(); i++) {
+            int rank = videos.size() - 1 - i;
+            exposure[i] = 1.0d / Math.pow(rank + 5d, 0.8d);
+        }
 
         int perUser = Math.max(1, total / users.size());
         List<UserBehavior> batch = new ArrayList<>(BEHAVIOR_BATCH);
@@ -160,14 +168,40 @@ public class MockDataService {
         for (int u = 0; u < users.size(); u++) {
             User user = users.get(u);
             String preferredTopic = TOPICS[u % TOPICS.length];
-            List<Post> preferred = videosByTopic.getOrDefault(preferredTopic, videos);
+            List<Post> topicVideos = videosByTopic.getOrDefault(preferredTopic, videos);
+            // 再收敛到 4 个常看作者：真实用户会追固定的创作者，兴趣粒度远小于“整个话题”
+            List<Long> authorIds = topicVideos.stream()
+                    .map(Post::getUserId)
+                    .filter(id -> id != null)
+                    .distinct()
+                    .toList();
+            Set<Long> preferredAuthors = new HashSet<>();
+            if (!authorIds.isEmpty()) {
+                int pick = Math.min(4, authorIds.size());
+                while (preferredAuthors.size() < pick) {
+                    preferredAuthors.add(authorIds.get(random.nextInt(authorIds.size())));
+                }
+            }
+            List<Post> preferred = topicVideos.stream()
+                    .filter(p -> p.getUserId() != null && preferredAuthors.contains(p.getUserId()))
+                    .toList();
+            if (preferred.isEmpty()) {
+                preferred = topicVideos;
+            }
 
             for (int i = 0; i < perUser; i++) {
-                Post target = random.nextDouble() < 0.75
-                        ? preferred.get(random.nextInt(preferred.size()))
-                        : videos.get(random.nextInt(videos.size()));
-
                 String action = pickAction(random);
+                // 强互动的兴趣集中度更高：随手刷可以什么都看，点赞收藏基本只给自己感兴趣的话题
+                double preferRate = switch (action) {
+                    case UserBehavior.ACTION_LIKE, UserBehavior.ACTION_COMMENT,
+                         UserBehavior.ACTION_COLLECT, UserBehavior.ACTION_SHARE -> 0.85;
+                    case UserBehavior.ACTION_PLAY_END -> 0.70;
+                    default -> 0.55;
+                };
+                Post target = random.nextDouble() < preferRate
+                        ? preferred.get(random.nextInt(preferred.size()))
+                        : pickWeighted(videos, exposure, random);
+
                 double ratio = watchRatio(action, random);
 
                 UserBehavior behavior = new UserBehavior();
@@ -179,7 +213,7 @@ public class MockDataService {
                 behavior.setWatchRatio(BigDecimal.valueOf(ratio).setScale(3, RoundingMode.HALF_UP));
                 behavior.setScene("FEED");
                 behavior.setTraceId(null);
-                behavior.setCreateTime(now.minusMinutes(random.nextInt(0, 7 * 24 * 60)));
+                behavior.setCreateTime(seenAt(target, now, random));
                 batch.add(behavior);
 
                 if (batch.size() >= BEHAVIOR_BATCH) {
@@ -194,6 +228,43 @@ public class MockDataService {
             inserted += batch.size();
         }
         return inserted;
+    }
+
+    /**
+     * 按曝光权重抽视频，模拟平台的流量长尾；均匀抽样会让 ItemCF 的共现矩阵退化。
+     */
+    private static Post pickWeighted(List<Post> videos, double[] weights, ThreadLocalRandom random) {
+        double total = 0d;
+        for (double weight : weights) {
+            total += weight;
+        }
+        double point = random.nextDouble() * total;
+        for (int i = 0; i < videos.size(); i++) {
+            point -= weights[i];
+            if (point <= 0d) {
+                return videos.get(i);
+            }
+        }
+        return videos.get(videos.size() - 1);
+    }
+
+    /**
+     * 行为发生时间：以「用户最近 7 天的活跃窗口」为主，且不能早于视频发布时间。
+     *
+     * 早期版本用「发布时间 + 0~72 小时」，结果是每个人的最后一条行为都落在最新视频上，
+     * 评估里“纯最新”基线会虚高；这里让行为时间与视频新旧解耦，更接近真实浏览分布。
+     */
+    private static LocalDateTime seenAt(Post target, LocalDateTime now, ThreadLocalRandom random) {
+        LocalDateTime published = target.getCreateTime() == null
+                ? now.minusHours(1) : target.getCreateTime();
+        LocalDateTime candidate = now.minusMinutes(random.nextInt(0, 7 * 24 * 60));
+        if (candidate.isBefore(published)) {
+            candidate = published.plusMinutes(random.nextInt(0, 90));
+            if (candidate.isAfter(now)) {
+                candidate = now.minusMinutes(random.nextInt(0, 60));
+            }
+        }
+        return candidate;
     }
 
     private String pickAction(ThreadLocalRandom random) {

@@ -2,12 +2,14 @@ package com.example.petcommunity3.mapper;
 
 import com.example.petcommunity3.entity.Post;
 import com.example.petcommunity3.entity.VideoStat;
+import com.example.petcommunity3.vo.SimilarScoreVO;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -142,6 +144,96 @@ public interface RecommendMapper {
             """)
     List<VideoStat> selectStatsByIds(@Param("videoIds") List<Long> videoIds);
 
+    /**
+     * 曝光去重：查该用户最近一段时间已经记录过曝光的视频，避免刷新页面刷量。
+     */
+    @Select("""
+            <script>
+            SELECT DISTINCT target_id FROM user_behavior
+            WHERE user_id = #{userId} AND target_type = 'VIDEO'
+              AND action = 'IMPRESSION'
+              AND create_time &gt; #{since}
+              AND target_id IN
+            <foreach collection="videoIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </script>
+            """)
+    List<Long> selectRecentImpressionTargets(@Param("userId") Long userId,
+                                             @Param("videoIds") List<Long> videoIds,
+                                             @Param("since") LocalDateTime since);
+
+    /**
+     * 离线评估：挑出正反馈足够多的用户（有足够画像，holdout 才有意义）。
+     */
+    @Select("""
+            SELECT user_id FROM user_behavior
+            WHERE action IN ('PLAY_END', 'LIKE', 'COLLECT', 'COMMENT', 'SHARE')
+              AND create_time >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+            GROUP BY user_id
+            HAVING COUNT(DISTINCT target_id) >= #{minInteractions}
+            ORDER BY COUNT(DISTINCT target_id) DESC
+            LIMIT #{limit}
+            """)
+    List<Long> selectEvaluableUserIds(@Param("minInteractions") int minInteractions,
+                                      @Param("limit") int limit);
+
+    /**
+     * 离线评估：该用户最近一条强反馈作为 leave-one-out 的 holdout。
+     * 只用 LIKE/COLLECT/COMMENT/SHARE：完播的噪声太大，点赞收藏更能代表真实偏好。
+     * 限定近 7 天，避免拿太久以前的行为做“未来预测”的假目标。
+     */
+    @Select("""
+            SELECT target_id FROM user_behavior
+            WHERE user_id = #{userId}
+              AND action IN ('LIKE', 'COLLECT', 'COMMENT', 'SHARE')
+              AND create_time >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            ORDER BY create_time DESC
+            LIMIT 1
+            """)
+    Long selectLatestPositiveTarget(@Param("userId") Long userId);
+
+    @Select("SELECT COUNT(*) FROM post WHERE status = 1 AND content_type = 'VIDEO'")
+    int countPublicVideos();
+
     @Delete("DELETE FROM user_behavior WHERE create_time < DATE_SUB(NOW(), INTERVAL 90 DAY)")
     int deleteOldBehaviors();
+
+    /**
+     * 短期兴趣信号：候选视频与用户近 7 天正反馈视频的 ItemCF 相似度（取最大）。
+     * 只用于给候选打分，不单独当召回源，所以候选集在推荐主流程里一次批量查完。
+     */
+    @Select("""
+            <script>
+            SELECT s.similar_video_id AS videoId, MAX(s.score) AS score
+            FROM video_similar s
+            JOIN user_behavior b ON b.target_id = s.video_id
+            WHERE b.user_id = #{userId}
+              AND b.target_type = 'VIDEO'
+              AND b.action IN ('PLAY_END', 'LIKE', 'COMMENT', 'COLLECT', 'SHARE')
+              AND b.create_time >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+              AND s.similar_video_id IN
+            <foreach collection="videoIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            GROUP BY s.similar_video_id
+            </script>
+            """)
+    List<SimilarScoreVO> selectSimilarityScores(@Param("userId") Long userId,
+                                                @Param("videoIds") List<Long> videoIds);
+
+    /**
+     * 用户权重最高的兴趣话题，用于评估“推荐是否更懂这个人”的对照指标。
+     */
+    @Select("""
+            SELECT tag_value FROM user_interest_tag
+            WHERE user_id = #{userId} AND tag_type = 'TOPIC'
+            ORDER BY weight DESC
+            LIMIT 1
+            """)
+    String selectMainTopic(@Param("userId") Long userId);
+
+    @Select("""
+            <script>
+            SELECT id, topic FROM post WHERE id IN
+            <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </script>
+            """)
+    List<Post> selectTopicPairs(@Param("ids") List<Long> ids);
 }
