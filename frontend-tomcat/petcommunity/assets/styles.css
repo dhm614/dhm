@@ -583,12 +583,32 @@ th {
 }
 
 .video-card {
+    position: relative;
     overflow: hidden;
     border: 1px solid var(--line);
     border-radius: 8px;
     background: var(--surface-solid);
     box-shadow: var(--soft-shadow);
 }
+
+.video-reason {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 1;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: rgba(17, 17, 17, 0.72);
+    color: #fff;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.video-reason[data-reason="HOT"] { background: rgba(214, 48, 49, 0.88); }
+.video-reason[data-reason="FOLLOW"] { background: rgba(9, 132, 227, 0.88); }
+.video-reason[data-reason="TOPIC"] { background: rgba(0, 148, 50, 0.88); }
+.video-reason[data-reason="AUTHOR"] { background: rgba(230, 126, 34, 0.9); }
+.video-reason[data-reason="SIMILAR"] { background: rgba(142, 68, 173, 0.88); }
 
 .video-card a {
     display: block;
@@ -604,9 +624,16 @@ th {
 
 .video-card h2 {
     margin: 0;
-    padding: 13px 14px 15px;
+    padding: 13px 14px 4px;
     font-size: 16px;
     line-height: 1.4;
+}
+
+.video-card small {
+    display: block;
+    padding: 0 14px 14px;
+    color: var(--muted);
+    font-size: 12px;
 }
 
 .video-form label {

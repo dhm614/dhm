@@ -792,21 +792,65 @@
     }
 
     function loadVideos() {
-        request("/api/videos?limit=8").then(function (list) {
+        var traceId = "web-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+        var refresh = byId("refreshVideos");
+        if (refresh) {
+            refresh.onclick = loadVideos;
+        }
+        request("/api/feed/videos?limit=12&offset=0&traceId=" + traceId).then(function (feed) {
             var node = byId("videoList");
             if (!node) {
                 return;
             }
-            list = list || [];
-            node.innerHTML = list.length ? list.map(videoCardHtml).join("") : emptyHtml();
-            notice(list.length ? "已加载 " + list.length + " 条短视频。" : "暂无已通过审核的短视频。");
+            var items = (feed && feed.items) || [];
+            node.innerHTML = items.length ? items.map(videoCardHtml).join("") : emptyHtml();
+            notice(items.length
+                ? "已为你推荐 " + items.length + " 条短视频（策略 " + text(feed.strategy || "-") + "）。"
+                : "暂无已通过审核的短视频。");
+            reportFeedImpressions(items, traceId);
         });
     }
 
+    function reportFeedImpressions(items, traceId) {
+        items.slice(0, 8).forEach(function (item) {
+            recordBehavior({targetId: item.id, targetType: "VIDEO", action: "IMPRESSION", scene: "FEED", traceId: traceId});
+        });
+    }
+
+    function recordBehavior(payload) {
+        if (!state.authUser || !state.authUser.id) {
+            return;
+        }
+        fetch(state.apiBase + "/api/behaviors", {
+            method: "POST",
+            headers: {"Content-Type": "application/json", "X-User-Id": String(state.authUser.id)},
+            body: JSON.stringify(payload)
+        }).catch(function () {
+            // 埋点失败不影响页面
+        });
+    }
+
+    function reasonLabel(reason) {
+        var labels = {
+            HOT: "热门推荐",
+            FOLLOW: "关注的人",
+            TOPIC: "兴趣话题",
+            AUTHOR: "常看作者",
+            SIMILAR: "相似内容",
+            FRESH: "新发布",
+            LATEST: "最新"
+        };
+        return labels[reason] || reason || "推荐";
+    }
+
     function videoCardHtml(video) {
-        return '<article class="video-card"><a href="video-detail.html?id=' + video.id + '">' +
+        var hot = video.hotScore === null || video.hotScore === undefined ? "" : "热度 " + Number(video.hotScore).toFixed(1);
+        return '<article class="video-card">' +
+            '<span class="video-reason" data-reason="' + text(video.reason || "") + '">' + text(reasonLabel(video.reason)) + '</span>' +
+            '<a href="video-detail.html?id=' + video.id + '">' +
             '<img src="' + text(img(video.cover)) + '" alt="' + text(video.title) + '">' +
-            '<h2>' + text(video.title) + '</h2></a></article>';
+            '<h2>' + text(video.title) + '</h2>' +
+            '<small>' + text(video.authorName || "") + (hot ? " · " + hot : "") + '</small></a></article>';
     }
 
     function loadSelectableVideoTopics() {
@@ -944,6 +988,34 @@
             '<button data-video-action="collect">收藏</button>' +
             '<button class="danger" data-video-action="report">举报</button></div></div></article>';
         bindVideoDetailButtons(video.id);
+        bindVideoBehavior(video.id);
+    }
+
+    function bindVideoBehavior(videoId) {
+        var node = document.querySelector(".video-detail-content video");
+        if (!node) {
+            return;
+        }
+        var reportedPlay = false;
+        node.addEventListener("play", function () {
+            if (reportedPlay) {
+                return;
+            }
+            reportedPlay = true;
+            recordBehavior({targetId: videoId, targetType: "VIDEO", action: "PLAY", scene: "DETAIL"});
+        });
+        node.addEventListener("ended", function () {
+            var duration = node.duration || 0;
+            var ratio = duration > 0 ? Math.min(1, node.currentTime / duration) : 1;
+            recordBehavior({
+                targetId: videoId,
+                targetType: "VIDEO",
+                action: "PLAY_END",
+                watchMs: Math.round(node.currentTime * 1000),
+                watchRatio: Number(ratio.toFixed(3)),
+                scene: "DETAIL"
+            });
+        });
     }
 
     function renderVideoCommentTree(comments) {
